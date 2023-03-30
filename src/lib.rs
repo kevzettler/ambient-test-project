@@ -15,7 +15,7 @@ use ambient_api::{
     player::KeyCode,
     prelude::*,
 };
-use components::{player_camera_ref, velocity};
+use components::player_camera_ref;
 
 #[main]
 pub async fn main() -> EventResult {
@@ -46,7 +46,6 @@ pub async fn main() -> EventResult {
                     .with_default(visualizing())
                     .with(prefab_from_url(), asset_url("assets/mecha.glb").unwrap())
                     .with(player_camera_ref(), camera)
-                    .with(velocity(), Vec3::ZERO)
                     .with(character_controller_height(), 2.)
                     .with(character_controller_radius(), 0.5),
             );
