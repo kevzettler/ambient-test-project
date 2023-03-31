@@ -7,4 +7,7 @@ version = "0.0.1"
 player_camera_ref = { type = "EntityId", name = "Player camera ref", description = "", attributes = [
     "Debuggable",
 ] }
+player_mesh_ref = { type = "EntityId", name = "Player mesh ref", description = "", attributes = [
+    "Debuggable",
+] }
 camera_pitch = { type = "F32", name = "Camera pitch", description = "camera rotation pitch" }
