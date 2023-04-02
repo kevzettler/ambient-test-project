@@ -10,7 +10,8 @@ use ambient_api::{
         prefab::prefab_from_url,
         primitives::{cube, quad},
         rendering::color,
-        transform::{lookat_center, rotation, scale, translation},
+        transform::{lookat_center, rotation, scale, translation, local_to_parent},
+        ecs::children
     },
     concepts::{make_perspective_infinite_reverse_camera, make_transformable},
     entity::{AnimationAction, AnimationController},
@@ -44,7 +45,8 @@ pub async fn main() -> EventResult {
             let player_mesh_id = Entity::new()
                 .with_merge(make_transformable())
                 .with(prefab_from_url(), asset_url("assets/mecha.glb").unwrap())
-                .with(rotation(), Quat::from_rotation_z(-std::f32::consts::FRAC_PI_2))
+                .with_default(local_to_parent())
+                .with(rotation(), Quat::from_rotation_z(-std::f32::consts::FRAC_PI_2)) // rotate blender mesh to fit world coordinates
                 .spawn();
 
             entity::add_components(
@@ -53,6 +55,7 @@ pub async fn main() -> EventResult {
                 Entity::new()
                     .with_merge(make_transformable())
                     .with_default(cube())
+                    .with(children(), vec![player_mesh_id])
                     .with(player_camera_ref(), camera)
                     .with(player_mesh_ref(), player_mesh_id)
                     .with(color(), vec4(0.5, 0.0, 1.0, 1.0))
@@ -92,12 +95,7 @@ pub async fn main() -> EventResult {
                     *q *= Quat::from_rotation_z(delta.mouse_position.x * 0.01)
                 });
 
-                entity::mutate_component(player_mesh_id, rotation(), |q: &mut Quat| {
-                    *q *= Quat::from_rotation_z(delta.mouse_position.x * 0.01)
-                });
-
                 entity::mutate_component(player_id, translation(), |t| *t += direction * speed);
-                entity::mutate_component(player_mesh_id, translation(), |t| *t += direction * speed);
 
                if direction.length() != 0.0 { // play walk
                     entity::set_animation_controller(
