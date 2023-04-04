@@ -11,7 +11,7 @@ use ambient_api::{
         primitives::{cube, quad},
         rendering::color,
         transform::{lookat_center, rotation, scale, translation, local_to_parent},
-        ecs::children
+        ecs::{children, parent}
     },
     concepts::{make_perspective_infinite_reverse_camera, make_transformable},
     entity::{AnimationAction, AnimationController},
@@ -38,6 +38,7 @@ pub async fn main() -> EventResult {
                 .with_default(player_camera())
                 .with(user_id(), user)
                 .with(translation(), Vec3::ONE)
+                .with(rotation(), Quat::IDENTITY)
                 .with(lookat_center(), vec3(0., 0., 0.))
                 .spawn();
 
@@ -46,6 +47,7 @@ pub async fn main() -> EventResult {
                 .with_merge(make_transformable())
                 .with(prefab_from_url(), asset_url("assets/mecha.glb").unwrap())
                 .with_default(local_to_parent())
+                .with(parent(), id)
                 .with(rotation(), Quat::from_rotation_z(-std::f32::consts::FRAC_PI_2)) // rotate blender mesh to fit world coordinates
                 .spawn();
 
@@ -76,28 +78,59 @@ pub async fn main() -> EventResult {
                 let right = entity::get_component(player_id, rotation()).unwrap() * Vec3::Y;
                 let speed = 0.1;
 
-                let mut direction: Vec3 = Vec3::ZERO;
+                let camera_vert_rotation: Quat = quat(0.,0.,0.,1.);
+                let camera_vert_offset = Vec3::Z * 10.;
+                let camera_horiz_offset: Vec3 = Vec3::NEG_ONE * forward * 4.;
+
+                let mut player_direction: Vec3 = Vec3::ZERO;
 
                 if pressed.keys.contains(&KeyCode::W) {
-                    direction += forward;
+                    player_direction += forward;
                 }
                 if pressed.keys.contains(&KeyCode::S) {
-                    direction += -forward;
+                    player_direction += -forward;
                 }
                 if pressed.keys.contains(&KeyCode::A) {
-                    direction += -right;
+                    player_direction += -right;
                 }
                 if pressed.keys.contains(&KeyCode::D) {
-                    direction += right;
+                    player_direction += right;
                 }
 
+                //update player rotation
                 entity::mutate_component(player_id, rotation(), |q: &mut Quat| {
                     *q *= Quat::from_rotation_z(delta.mouse_position.x * 0.01)
                 });
 
-                entity::mutate_component(player_id, translation(), |t| *t += direction * speed);
+                // upate player translation
+                entity::mutate_component(player_id, translation(), |t| *t += player_direction * speed);
 
-               if direction.length() != 0.0 { // play walk
+                let player_position = entity::get_component(player_id, translation()).unwrap();
+                let mut camera_target = player_position;
+
+                // update camera rotation
+                entity::mutate_component(camera_id, rotation(), |q: &mut Quat|{
+                    *q *= Quat::from_rotation_z(delta.mouse_position.x * 0.01);
+                    *q *= Quat::from_rotation_y(delta.mouse_position.y * 0.01);
+                });
+
+
+                // TODO
+                // Offset the target from the entities positon + some height
+
+                // rotate the camera quat by the entities horizontal and vertical rotations
+
+                // update the camera front vector to face the rotation of the camera in world space
+
+                // extrued the target from the camera's front direction
+
+                // Add the extrueded vector to the target vector to move it infront of the character
+
+                entity::set_component(camera_id, lookat_center(), camera_target);
+                entity::set_component(camera_id, translation(), player_position + camera_horiz_offset + camera_vert_offset);
+
+               // Animation controllers
+               if player_direction.length() != 0.0 { // play walk
                     entity::set_animation_controller(
                         player_mesh_id,
                         AnimationController {
@@ -123,12 +156,6 @@ pub async fn main() -> EventResult {
                     );
                 }
 
-
-                let player_position = entity::get_component(player_id, translation()).unwrap();
-                let mut target = player_position;
-
-                entity::set_component(camera_id, lookat_center(), target);
-                entity::set_component(camera_id, translation(), target - forward * 4. + Vec3::Z * 7.);
             }
         });
 
