@@ -78,10 +78,6 @@ pub async fn main() -> EventResult {
                 let right = entity::get_component(player_id, rotation()).unwrap() * Vec3::Y;
                 let speed = 0.1;
 
-                let camera_vert_rotation: Quat = quat(0.,0.,0.,1.);
-                let camera_vert_offset = Vec3::Z * 10.;
-                let camera_horiz_offset: Vec3 = Vec3::NEG_ONE * forward * 4.;
-
                 let mut player_direction: Vec3 = Vec3::ZERO;
 
                 if pressed.keys.contains(&KeyCode::W) {
@@ -105,29 +101,29 @@ pub async fn main() -> EventResult {
                 // upate player translation
                 entity::mutate_component(player_id, translation(), |t| *t += player_direction * speed);
 
-                let player_position = entity::get_component(player_id, translation()).unwrap();
-                let mut camera_target = player_position;
 
-                // update camera rotation
+                let player_position = entity::get_component(player_id, translation()).unwrap();
+                let camera_player_distance: Vec3 = Vec3::NEG_ONE * forward * 5.;
+                let camera_height_offset: Vec3 = Vec3::Z * 9.5;
+                let camera_position: Vec3 = player_position + camera_player_distance + camera_height_offset;
+                entity::set_component(camera_id, translation(), camera_position);
+//                entity::set_component(camera_id, lookat_center(), player_position);
+
+                // update camera vertical rotation
                 entity::mutate_component(camera_id, rotation(), |q: &mut Quat|{
                     *q *= Quat::from_rotation_z(delta.mouse_position.x * 0.01);
                     *q *= Quat::from_rotation_y(delta.mouse_position.y * 0.01);
                 });
 
-
-                // TODO
-                // Offset the target from the entities positon + some height
-
-                // rotate the camera quat by the entities horizontal and vertical rotations
-
-                // update the camera front vector to face the rotation of the camera in world space
-
-                // extrued the target from the camera's front direction
-
-                // Add the extrueded vector to the target vector to move it infront of the character
+                let camera_rotation = entity::get_component(camera_id, rotation()).unwrap();
+                let camera_target_height_offset: Vec3 = Vec3::Z * 7.5;
+                // WTF is this correct? tried to copy camera 'front' from the typescript codebase
+                let camera_forward = camera_rotation.mul_vec3(Vec3::X);
+                let camera_target_distance: f32 = 150.;
+                let camera_target = player_position + camera_target_height_offset + ( camera_forward * camera_target_distance);
 
                 entity::set_component(camera_id, lookat_center(), camera_target);
-                entity::set_component(camera_id, translation(), player_position + camera_horiz_offset + camera_vert_offset);
+
 
                // Animation controllers
                if player_direction.length() != 0.0 { // play walk
