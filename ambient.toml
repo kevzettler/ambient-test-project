@@ -10,4 +10,12 @@ player_camera_ref = { type = "EntityId", name = "Player camera ref", description
 player_mesh_ref = { type = "EntityId", name = "Player mesh ref", description = "", attributes = [
     "Debuggable",
 ] }
-camera_pitch = { type = "F32", name = "Camera pitch", description = "camera rotation pitch" }
+player_target_ref = { type = "EntityId", name = "Player target ref", description = "", attributes = [
+    "Debuggable",
+] }
+player_target_rotation = { type = "Quat", name = "Player target quat", description = "", attributes = [
+    "Debuggable",
+] }
+player_target_vec = { type = "Vec3", name = "Player target vector", description = "", attributes = [
+    "Debuggable",
+] }
