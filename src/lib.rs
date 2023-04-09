@@ -9,7 +9,7 @@ use ambient_api::{
         player::{player, user_id},
         prefab::prefab_from_url,
         primitives::{cube, quad },
-        rendering::color,
+        rendering::{color, transparency_group},
         transform::{lookat_center, rotation, scale, translation, local_to_parent},
         ecs::{children, parent}
     },
@@ -17,12 +17,34 @@ use ambient_api::{
     player::KeyCode,
     prelude::*,
 };
-use components::{player_camera_ref, player_mesh_ref, player_target_ref, player_target_rotation, player_target_vec};
+use components::{player_camera_ref, player_mesh_ref, player_target_rotation};
 
 
 #[main]
 pub async fn main() -> EventResult {
-    let camera_lookat_height_offset = Vec3::Z * 7.0;
+    let world_front: Vec3 = Vec3::X;
+    let world_right: Vec3 = Vec3::Y;
+
+    let view_sphere_offset = Vec3::Z * 7. + Vec3::Y * 2.;
+    let target_offset:Vec3 = view_sphere_offset + world_front * 7.;
+    let eye_offset:Vec3 = view_sphere_offset - world_front * 7.;
+
+    // camera target mesh for debugging
+    let target_mesh_id = Entity::new()
+        .with_merge(make_sphere())
+        .with_default(translation())
+        .with(transparency_group(), 100)
+        .with(color(), vec4(0., 1.0, 1.0, 1.))
+        .spawn();
+
+    // camera target mesh for debugging
+    let view_center_mesh_id = Entity::new()
+        .with_merge(make_sphere())
+        .with_default(translation())
+        .with(transparency_group(), -10)
+        .with(color(), vec4(0.4, 1.0, 0.0, 0.5))
+        .spawn();
+
 
     // ground entity
     Entity::new()
@@ -44,23 +66,12 @@ pub async fn main() -> EventResult {
                 .with(rotation(), Quat::from_rotation_z(-std::f32::consts::FRAC_PI_2)) // rotate blender mesh to fit world coordinates
                 .spawn();
 
-            let player_target = Vec3::Z * 7. + Vec3::X * 7.;
-            // camera target mesh for debugging
-            let target_mesh = Entity::new()
-                .with_merge(make_sphere())
-                .with(translation(), player_target)
-                .with(color(), vec4(0., 1.0, 1.0, 1.))
-                .spawn();
-
-            //Quat is default rotation from make_transformable
-            let forward = Quat::from_xyzw(0f32, 0f32, 0f32, 1f32) * Vec3::X;
-            let camera_offset = Vec3::new(0f32, 0f32, 0f32) + player_target -(forward * 5.);
             let camera = Entity::new()
                 .with_merge(make_perspective_infinite_reverse_camera())
                 .with_default(player_camera())
                 .with(user_id(), user)
-                .with(translation(), camera_offset)
-                .with(lookat_center(), player_target)
+                .with(translation(), eye_offset)
+                .with(lookat_center(), target_offset)
                 .spawn();
 
             // create root player entity
@@ -72,9 +83,7 @@ pub async fn main() -> EventResult {
                     .with_default(cube())
                     .with(children(), vec![player_mesh_id])
                     .with(player_camera_ref(), camera)
-                    .with(player_target_ref(), target_mesh)
                     .with(player_target_rotation(), Quat::IDENTITY)
-                    .with(player_target_vec(), player_target)
                     .with(player_mesh_ref(), player_mesh_id)
                     .with(color(), vec4(0.5, 0.0, 1.0, 1.0))
                     .with(character_controller_height(), 2.)
@@ -84,65 +93,72 @@ pub async fn main() -> EventResult {
         }
     });
 
-    query((player(), player_camera_ref(), player_mesh_ref(), player_target_ref()))
+    query((player(), player_camera_ref(), player_mesh_ref()))
         .build()
         .each_frame(move |players| {
-            for (player_id, (_, camera_id, player_mesh_id, target_id)) in players {
+            for (player_id, (_, camera_id, player_mesh_id)) in players {
                 let Some((delta, pressed)) = player::get_raw_input_delta(player_id) else { continue; };
-
-                let forward = entity::get_component(player_id, rotation()).unwrap() * Vec3::X;
-                let right = entity::get_component(player_id, rotation()).unwrap() * Vec3::Y;
-                let speed = 0.1;
-
-                let mut player_direction: Vec3 = Vec3::ZERO;
-
-                if pressed.keys.contains(&KeyCode::W) {
-                    player_direction += forward;
-                }
-                if pressed.keys.contains(&KeyCode::S) {
-                    player_direction += -forward;
-                }
-                if pressed.keys.contains(&KeyCode::A) {
-                    player_direction += -right;
-                }
-                if pressed.keys.contains(&KeyCode::D) {
-                    player_direction += right;
-                }
 
                 //update player rotation
                 entity::mutate_component(player_id, rotation(), |q: &mut Quat| {
                     *q *= Quat::from_rotation_z(delta.mouse_position.x * 0.01);
                 });
 
-                // udpate player translation
-                entity::mutate_component(player_id, translation(), |t| *t += player_direction * speed);
-
                 // update camera rotation on vertical access
                 entity::mutate_component(player_id, player_target_rotation(), |q: &mut Quat| {
                    *q *= Quat::from_rotation_y(delta.mouse_position.y * 0.01);
                 });
+
+                let player_rotation = entity::get_component(player_id, rotation()).unwrap();
+                let player_forward = player_rotation * world_front;
+                let player_right = player_rotation * world_right;
+                let speed = 0.1;
+
+                let mut player_direction: Vec3 = Vec3::ZERO;
+
+                if pressed.keys.contains(&KeyCode::W) {
+                    player_direction += player_forward;
+                }
+                if pressed.keys.contains(&KeyCode::S) {
+                    player_direction += -player_forward;
+                }
+                if pressed.keys.contains(&KeyCode::A) {
+                    player_direction += -player_right;
+                }
+                if pressed.keys.contains(&KeyCode::D) {
+                    player_direction += player_right;
+                }
+
+                // update player translation
+                entity::mutate_component(player_id, translation(), |t| *t += player_direction * speed);
+
+
+                // this is like an arc ball camera. There is a point offset from the players position that is the center of a sphere
+                // There is eye on one point of the sphere and a target on the other
+                // There is a quaternion that is updated with horizontal and vertical rotations from mouse input
+                // there is a vector that is calculated from the world front vector and the rotation quaternion
+                //
                 let player_rotation = entity::get_component(player_id, rotation()).unwrap();
                 let view_vert_rotation = entity::get_component(player_id, player_target_rotation()).unwrap();
                 let camera_rotation_quat = player_rotation * view_vert_rotation;
-
-
 
                 let player_position = entity::get_component(player_id, translation()).unwrap();
 
                 let camera_front = camera_rotation_quat * Vec3::X;
                 let target_projection = camera_front * 30.;
-                let camera_height_offset = Vec3::Z * 7.;
-                let target_position = player_position + camera_height_offset + target_projection;
+                let view_sphere_offset = Vec3::Z * 7. + player_right * 2.;
+                let target_position = player_position + view_sphere_offset + target_projection;
 
 
                 // move the target debug mesh to new target location
-                entity::set_component(target_id, translation(), target_position);
+                entity::set_component(target_mesh_id, translation(), target_position);
+                entity::set_component(view_center_mesh_id, translation(), player_position+view_sphere_offset);
 
                 // update camera lookat
                 entity::set_component(camera_id, lookat_center(), target_position);
 
                 let camera_projection = camera_front * Vec3::NEG_ONE * 10.;
-                let eye_position: Vec3 = player_position + camera_height_offset + camera_projection;
+                let eye_position: Vec3 = player_position + view_sphere_offset + camera_projection;
                 entity::set_component(camera_id, translation(), eye_position);
             }
         });
