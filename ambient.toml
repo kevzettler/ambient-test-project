@@ -10,12 +10,16 @@ player_camera_ref = { type = "EntityId", name = "Player camera ref", description
 player_mesh_ref = { type = "EntityId", name = "Player mesh ref", description = "", attributes = [
     "Debuggable",
 ] }
-player_target_ref = { type = "EntityId", name = "Player target ref", description = "", attributes = [
-    "Debuggable",
-] }
-player_target_rotation = { type = "Quat", name = "Player target quat", description = "", attributes = [
-    "Debuggable",
-] }
-player_target_vec = { type = "Vec3", name = "Player target vector", description = "", attributes = [
-    "Debuggable",
-] }
+view_vertical_rotation = { type = "Quat", name = "Vertical Rotation", description = "Vertical rotation quat for player" }
+player_mouse_delta_x = { type = "F32", name = "Player Mouse delta X", description = "The mouse delta X." }
+player_mouse_delta_y = { type = "F32", name = "Player Mouse delta Y", description = "The mouse delta Y." }
+player_input_direction = { type = "Vec2", name = "Direction", description = "The movement direction of the player." }
+
+
+[messages.input]
+name = "Player Input"
+description = "Describes the input state of the player."
+[messages.input.fields]
+input_direction = { type = "Vec2", name = "Direction", description = "The movement direction of the player." }
+mouse_delta_x = { type = "F32", name = "Mouse delta X", description = "The mouse delta X." }
+mouse_delta_y = { type = "F32", name = "Mouse delta Y", description = "The mouse delta Y." }

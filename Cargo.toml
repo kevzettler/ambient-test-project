@@ -4,7 +4,18 @@ edition = "2021"
 version = "0.0.1"
 
 [dependencies]
-ambient_api = "0.1.1"
+ambient_api = { git = "https://github.com/AmbientRun/Ambient.git", branch = "main" }
 
-[lib]
-crate-type = ["cdylib"]
+[[bin]]
+name = "client_ambient_test_project"
+path = "src/client.rs"
+required-features = ["client"]
+
+[[bin]]
+name = "server_ambient_test_project"
+path = "src/server.rs"
+required-features = ["server"]
+
+[features]
+client = ["ambient_api/client"]
+server = ["ambient_api/server"]
