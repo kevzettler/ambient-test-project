@@ -10,7 +10,7 @@ player_camera_ref = { type = "EntityId", name = "Player camera ref", description
 player_mesh_ref = { type = "EntityId", name = "Player mesh ref", description = "", attributes = [
     "Debuggable",
 ] }
-view_vertical_rotation = { type = "Quat", name = "Vertical Rotation", description = "Vertical rotation quat for player" }
+view_vertical_rotation = { type = "Quat", name = "Vertical Rotation", description = "Vertical rotation quat for player", attributes=["Networked"]}
 player_mouse_delta_x = { type = "F32", name = "Player Mouse delta X", description = "The mouse delta X." }
 player_mouse_delta_y = { type = "F32", name = "Player Mouse delta Y", description = "The mouse delta Y." }
 player_input_direction = { type = "Vec2", name = "Direction", description = "The movement direction of the player." }
