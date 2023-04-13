@@ -1,3 +1,5 @@
+use core::f32::consts::FRAC_PI_2;
+
 use ambient_api::{
     components::core::{
         physics::{
@@ -20,7 +22,8 @@ use components::{
     player_mesh_ref,
     player_input_direction,
     player_mouse_delta_x,
-    player_mouse_delta_y
+    player_mouse_delta_y,
+    player_vertical_rotation_angle
 };
 
 #[main]
@@ -60,6 +63,7 @@ pub fn main() {
                     .with_default(cube())
                     .with(children(), vec![player_mesh_id])
                     .with(view_vertical_rotation(), Quat::IDENTITY)
+                    .with(player_vertical_rotation_angle(), 0.0)
                     .with(player_mesh_ref(), player_mesh_id)
                     .with(color(), vec4(0.5, 0.0, 1.0, 1.0))
                     .with(character_controller_height(), 2.)
@@ -94,9 +98,24 @@ pub fn main() {
             });
 
             // update camera rotation on vertical access
-            entity::mutate_component(player_id, view_vertical_rotation(), |q: &mut Quat| {
-                *q *= Quat::from_rotation_y(mouse_delta_y * 0.01);
+            // entity::mutate_component(player_id, view_vertical_rotation(), |q: &mut Quat| {
+            //     *q *= Quat::from_rotation_y(mouse_delta_y * 0.01);
+            // });
+            entity::mutate_component(player_id, player_vertical_rotation_angle(), |angle: &mut f32| {
+                *angle += mouse_delta_y * 0.01;
             });
+
+            // Clamp the vertical rotation angle between a min and max value
+            let min_angle = -FRAC_PI_2 + 0.1; // Adjust the 0.1 value to avoid gimbal lock
+            let max_angle = FRAC_PI_2 - 0.1; // Adjust the 0.1 value to avoid gimbal lock
+            let clamped_angle = entity::get_component(player_id, player_vertical_rotation_angle())
+                .unwrap()
+                .clamp(min_angle, max_angle);
+
+            // Update the player_target_rotation quaternion
+            let clamped_rotation = Quat::from_rotation_y(clamped_angle);
+            entity::set_component(player_id, view_vertical_rotation(), clamped_rotation);
+
 
             let player_rotation = entity::get_component(player_id, rotation()).unwrap();
             let player_forward = player_rotation * world_front;

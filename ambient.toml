@@ -14,7 +14,7 @@ view_vertical_rotation = { type = "Quat", name = "Vertical Rotation", descriptio
 player_mouse_delta_x = { type = "F32", name = "Player Mouse delta X", description = "The mouse delta X." }
 player_mouse_delta_y = { type = "F32", name = "Player Mouse delta Y", description = "The mouse delta Y." }
 player_input_direction = { type = "Vec2", name = "Direction", description = "The movement direction of the player." }
-
+player_vertical_rotation_angle = { type = "F32", name = "Player vertical rotation angle", description = "Player vertical rotation angle for caping camera", attributes=["Networked"] }
 
 [messages.input]
 name = "Player Input"
