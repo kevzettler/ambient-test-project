@@ -68,6 +68,9 @@ pub fn main() {
                     .with(color(), vec4(0.5, 0.0, 1.0, 1.0))
                     .with(character_controller_height(), 2.)
                     .with(character_controller_radius(), 0.5)
+                    .with_default(player_input_direction())
+                    .with_default(player_mouse_delta_x())
+                    .with_default(player_mouse_delta_y())
                     .with_default(visualizing()),
             );
         }
@@ -76,10 +79,9 @@ pub fn main() {
     // capture input messages from client and update state
     messages::Input::subscribe(move |source, msg| {
         let Some(player_id) = source.client_entity_id() else { return; };
-
-        entity::add_component(player_id, player_input_direction(), msg.input_direction);
-        entity::add_component(player_id, player_mouse_delta_x(), msg.mouse_delta_x);
-        entity::add_component(player_id, player_mouse_delta_y(), msg.mouse_delta_y);
+        entity::set_component(player_id, player_input_direction(), msg.input_direction);
+        entity::set_component(player_id, player_mouse_delta_x(), msg.mouse_delta_x);
+        entity::set_component(player_id, player_mouse_delta_y(), msg.mouse_delta_y);
     });
 
     query((
@@ -101,6 +103,7 @@ pub fn main() {
             // entity::mutate_component(player_id, view_vertical_rotation(), |q: &mut Quat| {
             //     *q *= Quat::from_rotation_y(mouse_delta_y * 0.01);
             // });
+
             entity::mutate_component(player_id, player_vertical_rotation_angle(), |angle: &mut f32| {
                 *angle += mouse_delta_y * 0.01;
             });
@@ -112,7 +115,7 @@ pub fn main() {
                 .unwrap()
                 .clamp(min_angle, max_angle);
 
-            // Update the player_target_rotation quaternion
+            // Update the player_lookat_rotation quaternion
             let clamped_rotation = Quat::from_rotation_y(clamped_angle);
             entity::set_component(player_id, view_vertical_rotation(), clamped_rotation);
 

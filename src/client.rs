@@ -19,7 +19,7 @@ fn main() {
 
     // offset view sphere up and to the right
     let view_sphere_offset = world_up * 7. + world_right * 2.;
-    let target_offset:Vec3 = view_sphere_offset + world_front * 7.;
+    let lookat_offset:Vec3 = view_sphere_offset + world_front * 7.;
     let eye_offset:Vec3 = view_sphere_offset - world_front * 7.;
 
     spawn_query((player(), user_id())).bind(move |players| {
@@ -32,7 +32,7 @@ fn main() {
                     .with_default(main_scene())
                     .with(user_id(), user)
                     .with(translation(), eye_offset)
-                    .with(lookat_center(), target_offset)
+                    .with(lookat_center(), lookat_offset)
                     .spawn();
 
                 entity::add_components(id, Entity::new().with(player_camera_ref(), camera));
@@ -57,11 +57,11 @@ fn main() {
                 let player_position = entity::get_component(player_id, translation()).unwrap();
 
                 let camera_front = camera_rotation_quat * world_front;
-                let target_projection = camera_front * 30.;
+                let lookat_projection = camera_front * 30.;
                 let view_sphere_offset = world_up * 7. + player_right * 2.;
-                let target_position = player_position + view_sphere_offset + target_projection;
+                let lookat_position = player_position + view_sphere_offset + lookat_projection;
                 // update camera lookat
-                entity::set_component(camera_id, lookat_center(), target_position);
+                entity::set_component(camera_id, lookat_center(), lookat_position);
 
                 let camera_projection = camera_front * Vec3::NEG_ONE * 10.;
                 let eye_position: Vec3 = player_position + view_sphere_offset + camera_projection;
