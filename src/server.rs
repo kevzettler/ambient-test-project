@@ -104,6 +104,9 @@ pub fn main() {
             //     *q *= Quat::from_rotation_y(mouse_delta_y * 0.01);
             // });
 
+            if(mouse_delta_y != 0.0){
+                println!("mouse delta y?? {}, {}", mouse_delta_y, mouse_delta_y * 0.01);
+            }
             entity::mutate_component(player_id, player_vertical_rotation_angle(), |angle: &mut f32| {
                 *angle += mouse_delta_y * 0.01;
             });
@@ -116,8 +119,8 @@ pub fn main() {
                 .clamp(min_angle, max_angle);
 
             // Update the player_lookat_rotation quaternion
-            let clamped_rotation = Quat::from_rotation_y(clamped_angle);
-            entity::set_component(player_id, view_vertical_rotation(), clamped_rotation);
+            let clamped_vertical_rotation = Quat::from_rotation_y(clamped_angle);
+            entity::set_component(player_id, view_vertical_rotation(), clamped_vertical_rotation);
 
 
             let player_rotation = entity::get_component(player_id, rotation()).unwrap();
