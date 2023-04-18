@@ -6,7 +6,6 @@ use ambient_api::{
         transform::{lookat_center, rotation, translation},
     },
     concepts::make_perspective_infinite_reverse_camera,
-    player::KeyCode,
     prelude::*,
 };
 use components::{player_camera_ref, view_vertical_rotation};
@@ -69,20 +68,24 @@ fn main() {
         }
     });
 
+    let mut cursor_lock = input::CursorLockGuard::new(true);
     ambient_api::messages::Frame::subscribe(move |_| {
-        let (delta, pressed) = player::get_raw_input_delta();
+        let (delta, input) = input::get_delta();
+        if !cursor_lock.auto_unlock_on_escape(&input) {
+            return;
+        }
 
         let mut input_direction = Vec2::ZERO;
-        if pressed.keys.contains(&KeyCode::W) {
+        if input.keys.contains(&KeyCode::W) {
             input_direction.x += 1.0;
         }
-        if pressed.keys.contains(&KeyCode::S) {
+        if input.keys.contains(&KeyCode::S) {
             input_direction.x -= 1.0;
         }
-        if pressed.keys.contains(&KeyCode::A) {
+        if input.keys.contains(&KeyCode::A) {
             input_direction.y -= 1.0;
         }
-        if pressed.keys.contains(&KeyCode::D) {
+        if input.keys.contains(&KeyCode::D) {
             input_direction.y += 1.0;
         }
 
