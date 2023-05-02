@@ -16,6 +16,9 @@ player_mouse_delta_y = { type = "F32", name = "Player Mouse delta Y", descriptio
 player_input_direction = { type = "Vec2", name = "Direction", description = "The movement direction of the player." }
 player_vertical_rotation_angle = { type = "F32", name = "Player vertical rotation angle", description = "Player vertical rotation angle for caping camera", attributes=["Networked"] }
 
+player_text_ref = { type = "EntityId", name = "Player Text Reference", description = "EntityId of a player's text" }
+player_text_container_ref = { type = "EntityId", name = "Player Text Container Reference", description = "EntityId of a player's text container" }
+
 [messages.input]
 name = "Player Input"
 description = "Describes the input state of the player."

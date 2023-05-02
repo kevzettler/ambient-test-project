@@ -9,9 +9,10 @@ use ambient_api::{
         player::player,
         primitives::{cube, quad},
         rendering::color,
-        transform::{rotation, scale, translation, local_to_parent},
+        transform::{rotation, scale, translation, local_to_parent, spherical_billboard},
         prefab::prefab_from_url,
-        ecs::{children, parent}
+        ecs::{children, parent},
+        text::{font_size, text},
     },
     concepts::make_transformable,
     prelude::*,
@@ -23,8 +24,24 @@ use components::{
     player_input_direction,
     player_mouse_delta_x,
     player_mouse_delta_y,
-    player_vertical_rotation_angle
+    player_vertical_rotation_angle,
+    player_text_container_ref,
 };
+
+
+fn make_text() -> Entity {
+    Entity::new()
+        .with(
+            local_to_parent(),
+            Mat4::from_scale(Vec3::ONE * 0.02) * Mat4::from_rotation_x(-180_f32.to_radians()),
+        )
+        .with(color(), vec4(1., 0., 0., 1.))
+        .with(font_size(), 36.)
+        .with_default(main_scene())
+        .with_default(local_to_world())
+        .with_default(mesh_to_local())
+        .with_default(mesh_to_world())
+}
 
 #[main]
 pub fn main() {
@@ -35,13 +52,25 @@ pub fn main() {
     Entity::new()
         .with_merge(make_transformable())
         .with_default(quad())
-        .with(scale(), Vec3::ONE * 10.)
-        .with(color(), vec4(0.5, 1.0, 0.5, 1.))
+        .with(scale(), Vec3::ONE * 20.)
+        .with(color(), vec4(0.5, 1.0, 0.5, 1.0))
         .with_default(plane_collider())
+        .spawn();
+
+    // static entity
+    Entity::new()
+        .with_merge(make_transformable())
+        .with(
+            prefab_from_url(),
+            asset::url("assets/mecha.glb").unwrap(),
+        )
+        .with(translation(), vec3(2., 0.0, 2.))
+        .with(rotation(), Quat::from_rotation_z(-std::f32::consts::FRAC_PI_2)) // rotate blender mesh to fit world coordinates
         .spawn();
 
     spawn_query(player()).bind(move |players| {
         for (id, _) in players {
+
             // add mecha to player id
             let player_mesh_id = Entity::new()
                 .with_merge(make_transformable())
@@ -54,6 +83,23 @@ pub fn main() {
                 .with(rotation(), Quat::from_rotation_z(-std::f32::consts::FRAC_PI_2)) // rotate blender mesh to fit world coordinates
                 .spawn();
 
+            let text = make_text()
+                .with(color(), vec4(1.0, 1.0, 1.0, 1.0))
+                .with(user_id(), id.to_string())
+                .with(text(), "player".to_string())
+                .with(parent(), id)
+                .spawn();
+
+            let text_container = make_transformable()
+                    .with_default(main_scene())
+                    .with_default(local_to_world())
+                    .with_default(spherical_billboard())
+                    .with(translation(), vec3(-5., 0., 5.))
+                    .with(children(), vec![text])
+                .spawn();
+            entity::add_component(id, player_text_container_ref(), text_container);
+
+
             // create root player entity
             entity::add_components(
                 id,
@@ -61,7 +107,7 @@ pub fn main() {
                 Entity::new()
                     .with_merge(make_transformable())
                     .with_default(cube())
-                    .with(children(), vec![player_mesh_id])
+                    .with(children(), vec![player_mesh_id, text_container])
                     .with(view_vertical_rotation(), Quat::IDENTITY)
                     .with(player_vertical_rotation_angle(), 0.0)
                     .with(player_mesh_ref(), player_mesh_id)
@@ -104,7 +150,7 @@ pub fn main() {
             //     *q *= Quat::from_rotation_y(mouse_delta_y * 0.01);
             // });
 
-            if(mouse_delta_y != 0.0){
+            if mouse_delta_y != 0.0 {
                 println!("mouse delta y?? {}, {}", mouse_delta_y, mouse_delta_y * 0.01);
             }
             entity::mutate_component(player_id, player_vertical_rotation_angle(), |angle: &mut f32| {
@@ -145,6 +191,15 @@ pub fn main() {
 
             // update player translation
             entity::mutate_component(player_id, translation(), |t| *t += player_direction * speed);
+
+            // update player text
+            let player_position = entity::get_component(player_id, translation()).unwrap();
+            let player_text_container = entity::get_component(player_id, player_text_container_ref()).unwrap();
+            entity::set_component(
+                player_text_container,
+                translation(),
+                player_position + Vec3::Z * 9.,
+            );
 
             //TODO how to update physics here?
             //physics::move_character(player_id, displace, 0.01, frametime());

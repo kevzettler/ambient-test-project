@@ -3,7 +3,7 @@ use ambient_api::{
         app::main_scene,
         camera::aspect_ratio_from_window,
         player::{local_user_id, player, user_id},
-        transform::{lookat_center, rotation, translation},
+        transform::{lookat_target, rotation, translation},
     },
     concepts::make_perspective_infinite_reverse_camera,
     prelude::*,
@@ -31,7 +31,7 @@ fn main() {
                     .with_default(main_scene())
                     .with(user_id(), user)
                     .with(translation(), eye_offset)
-                    .with(lookat_center(), lookat_offset)
+                    .with(lookat_target(), lookat_offset)
                     .spawn();
 
                 entity::add_components(id, Entity::new().with(player_camera_ref(), camera));
@@ -60,7 +60,7 @@ fn main() {
                 let view_sphere_offset = world_up * 7. + player_right * 2.;
                 let lookat_position = player_position + view_sphere_offset + lookat_projection;
                 // update camera lookat
-                entity::set_component(camera_id, lookat_center(), lookat_position);
+                entity::set_component(camera_id, lookat_target(), lookat_position);
 
                 let camera_projection = camera_front * Vec3::NEG_ONE * 10.;
                 let eye_position: Vec3 = player_position + view_sphere_offset + camera_projection;
