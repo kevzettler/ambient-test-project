@@ -1,7 +1,7 @@
 use ambient_api::{
     components::core::{
         app::main_scene,
-        camera::aspect_ratio_from_window,
+        camera::{aspect_ratio_from_window, near},
         player::{local_user_id, player, user_id},
         transform::{lookat_target, rotation, translation},
     },
@@ -31,6 +31,7 @@ fn main() {
                     .with_default(main_scene())
                     .with(user_id(), user)
                     .with(translation(), eye_offset)
+                    .with(near(), 0.001)
                     .with(lookat_target(), lookat_offset)
                     .spawn();
 
