@@ -19,6 +19,8 @@ player_vertical_rotation_angle = { type = "F32", name = "Player vertical rotatio
 player_text_ref = { type = "EntityId", name = "Player Text Reference", description = "EntityId of a player's text" }
 player_text_container_ref = { type = "EntityId", name = "Player Text Container Reference", description = "EntityId of a player's text container" }
 
+player_animation_state = { type = "U32", name = "Players current animation id", description = "Players current animation id" }
+
 [messages.input]
 name = "Player Input"
 description = "Describes the input state of the player."

@@ -1,4 +1,6 @@
 use core::f32::consts::FRAC_PI_2;
+use num;
+use num_derive::FromPrimitive;
 
 use ambient_api::{
     components::core::{
@@ -14,6 +16,7 @@ use ambient_api::{
         ecs::{children, parent},
         text::{font_size, text},
     },
+    entity::{AnimationAction, AnimationController},
     concepts::make_transformable,
     prelude::*,
 };
@@ -26,7 +29,64 @@ use components::{
     player_mouse_delta_y,
     player_vertical_rotation_angle,
     player_text_container_ref,
+    player_animation_state
 };
+
+
+// state machine from:
+// https://play.rust-lang.org/?version=stable&mode=debug&edition=2015&gist=ee3e4df093c136ced7b394dc7ffb78e1
+#[derive(Debug, PartialEq, Clone, Copy, FromPrimitive)]
+enum State{
+    Idle,
+    Walking,
+}
+
+#[derive(Debug, Clone, Copy)]
+enum Event {
+    Stop,
+    Walk,
+}
+
+impl State{
+    fn transition(self, entity_id:EntityId, event: Event) -> State{
+         return match (self, event) {
+            (State::Idle, Event::Walk) => {
+                println!("State machine Idle -> Walk!");
+                entity::set_animation_controller(
+                    entity_id,
+                    AnimationController {
+                        actions: &[AnimationAction {
+                            clip_url: &asset::url("assets/mecha.glb/animations/walk_2.anim").unwrap(),
+                            looping: true,
+                            weight: 1.,
+                        }],
+                        apply_base_pose: false,
+                    },
+                );
+
+                State::Walking
+            },
+            (State::Walking, Event::Walk) => State::Walking,
+            (State::Walking, Event::Stop) => {
+                println!("State machine Walking -> Stop!");
+                entity::set_animation_controller(
+                    entity_id,
+                    AnimationController {
+                        actions: &[AnimationAction {
+                            clip_url: &asset::url("assets/mecha.glb/animations/idle_1.anim").unwrap(),
+                            looping: true,
+                            weight: 1.,
+                        }],
+                        apply_base_pose: false,
+                    },
+                );
+
+                State::Idle
+            },
+            (State::Idle, Event::Stop) => State::Idle,
+         };
+    }
+}
 
 
 fn make_text() -> Entity {
@@ -70,7 +130,6 @@ pub fn main() {
 
     spawn_query(player()).bind(move |players| {
         for (id, _) in players {
-
             // add mecha to player id
             let player_mesh_id = Entity::new()
                 .with_merge(make_transformable())
@@ -80,6 +139,7 @@ pub fn main() {
                 )
                 .with_default(local_to_parent())
                 .with(parent(), id)
+                .with(player_animation_state(), State::Idle as u32)
                 .with(rotation(), Quat::from_rotation_z(-std::f32::consts::FRAC_PI_2)) // rotate blender mesh to fit world coordinates
                 .spawn();
 
@@ -120,7 +180,7 @@ pub fn main() {
                     .with_default(visualizing()),
             );
         }
-    });
+        });
 
     // capture input messages from client and update state
     messages::Input::subscribe(move |source, msg| {
@@ -150,9 +210,6 @@ pub fn main() {
             //     *q *= Quat::from_rotation_y(mouse_delta_y * 0.01);
             // });
 
-            if mouse_delta_y != 0.0 {
-                println!("mouse delta y?? {}, {}", mouse_delta_y, mouse_delta_y * 0.01);
-            }
             entity::mutate_component(player_id, player_vertical_rotation_angle(), |angle: &mut f32| {
                 *angle += mouse_delta_y * 0.01;
             });
@@ -173,8 +230,25 @@ pub fn main() {
             let player_forward = player_rotation * world_front;
             let player_right = player_rotation * world_right;
             let speed = 0.1;
-
             let mut player_direction: Vec3 = Vec3::ZERO;
+
+
+            let player_mesh_id = entity::get_component(player_id, player_mesh_ref()).unwrap();
+            let mut player_animation_id = entity::get_component(player_mesh_id, player_animation_state()).unwrap();
+            let mut player_animation_enum = match num::FromPrimitive::from_u32(player_animation_id) {
+                Some(animation_state) => animation_state,
+                None => {
+                    println!("Unkown animation state");
+                    State::Idle
+                }
+            };
+            if input_direction.x == 0.0 && input_direction.y == 0.0 {
+                player_animation_enum = player_animation_enum.transition(player_mesh_id, Event::Stop);
+            }else{
+                player_animation_enum = player_animation_enum.transition(player_mesh_id, Event::Walk);
+            }
+            entity::set_component(player_mesh_id, player_animation_state(), player_animation_enum as u32);
+
 
             if input_direction.x == 1.0 {
                 player_direction += player_forward;
@@ -204,5 +278,5 @@ pub fn main() {
             //TODO how to update physics here?
             //physics::move_character(player_id, displace, 0.01, frametime());
         }
-    });
+        });
 }

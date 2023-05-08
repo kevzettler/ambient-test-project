@@ -4,8 +4,10 @@ edition = "2021"
 version = "0.0.1"
 
 [dependencies]
-# ambient_api = { git = "https://github.com/AmbientRun/Ambient.git", branch = "main" }
 ambient_api = { path = "/Users/kevzettler/code/Ambient/guest/rust/api" }
+num = "0.4.0"
+num-derive = "0.3.3"
+num-traits = "0.2.15"
 
 [[bin]]
 name = "client_ambient_test_project"
