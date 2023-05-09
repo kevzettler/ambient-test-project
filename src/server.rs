@@ -1,6 +1,5 @@
 use core::f32::consts::FRAC_PI_2;
 use num;
-use num_derive::FromPrimitive;
 
 use ambient_api::{
     components::core::{
@@ -16,7 +15,6 @@ use ambient_api::{
         ecs::{children, parent},
         text::{font_size, text},
     },
-    entity::{AnimationAction, AnimationController},
     concepts::make_transformable,
     prelude::*,
 };
@@ -32,61 +30,8 @@ use components::{
     player_animation_state
 };
 
-
-// state machine from:
-// https://play.rust-lang.org/?version=stable&mode=debug&edition=2015&gist=ee3e4df093c136ced7b394dc7ffb78e1
-#[derive(Debug, PartialEq, Clone, Copy, FromPrimitive)]
-enum State{
-    Idle,
-    Walking,
-}
-
-#[derive(Debug, Clone, Copy)]
-enum Event {
-    Stop,
-    Walk,
-}
-
-impl State{
-    fn transition(self, entity_id:EntityId, event: Event) -> State{
-         return match (self, event) {
-            (State::Idle, Event::Walk) => {
-                println!("State machine Idle -> Walk!");
-                entity::set_animation_controller(
-                    entity_id,
-                    AnimationController {
-                        actions: &[AnimationAction {
-                            clip_url: &asset::url("assets/mecha.glb/animations/walk_2.anim").unwrap(),
-                            looping: true,
-                            weight: 1.,
-                        }],
-                        apply_base_pose: false,
-                    },
-                );
-
-                State::Walking
-            },
-            (State::Walking, Event::Walk) => State::Walking,
-            (State::Walking, Event::Stop) => {
-                println!("State machine Walking -> Stop!");
-                entity::set_animation_controller(
-                    entity_id,
-                    AnimationController {
-                        actions: &[AnimationAction {
-                            clip_url: &asset::url("assets/mecha.glb/animations/idle_1.anim").unwrap(),
-                            looping: true,
-                            weight: 1.,
-                        }],
-                        apply_base_pose: false,
-                    },
-                );
-
-                State::Idle
-            },
-            (State::Idle, Event::Stop) => State::Idle,
-         };
-    }
-}
+mod player_animation_state;
+use player_animation_state::{PlayerAnimationEvent, PlayerAnimationState};
 
 
 fn make_text() -> Entity {
@@ -139,7 +84,7 @@ pub fn main() {
                 )
                 .with_default(local_to_parent())
                 .with(parent(), id)
-                .with(player_animation_state(), State::Idle as u32)
+                .with(player_animation_state(), PlayerAnimationState::Idle as u32)
                 .with(rotation(), Quat::from_rotation_z(-std::f32::consts::FRAC_PI_2)) // rotate blender mesh to fit world coordinates
                 .spawn();
 
@@ -239,13 +184,13 @@ pub fn main() {
                 Some(animation_state) => animation_state,
                 None => {
                     println!("Unkown animation state");
-                    State::Idle
+                    PlayerAnimationState::Idle
                 }
             };
             if input_direction.x == 0.0 && input_direction.y == 0.0 {
-                player_animation_enum = player_animation_enum.transition(player_mesh_id, Event::Stop);
+                player_animation_enum = player_animation_enum.transition(player_mesh_id, PlayerAnimationEvent::Stop);
             }else{
-                player_animation_enum = player_animation_enum.transition(player_mesh_id, Event::Walk);
+                player_animation_enum = player_animation_enum.transition(player_mesh_id, PlayerAnimationEvent::Walk);
             }
             entity::set_component(player_mesh_id, player_animation_state(), player_animation_enum as u32);
 
