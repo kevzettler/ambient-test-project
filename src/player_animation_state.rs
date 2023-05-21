@@ -12,12 +12,14 @@ use num_derive::FromPrimitive;
 pub enum PlayerAnimationState {
     Idle,
     Walking,
+    Dashing,
 }
 
 #[derive(Debug, Clone, Copy)]
 pub enum PlayerAnimationEvent {
     Stop,
     Walk,
+    Dash,
 }
 
 impl PlayerAnimationState {
@@ -27,6 +29,61 @@ impl PlayerAnimationState {
         event: PlayerAnimationEvent,
     ) -> PlayerAnimationState {
         return match (self, event) {
+            (PlayerAnimationState::Walking, PlayerAnimationEvent::Dash) => {
+                println!("State machine Idle -> Walk!");
+                entity::set_animation_controller(
+                    entity_id,
+                    AnimationController {
+                        actions: &[AnimationAction {
+                            clip_url: &asset::url("assets/mecha.glb/animations/dash_0.anim")
+                                .unwrap(),
+                            looping: true,
+                            weight: 1.,
+                        }],
+                        apply_base_pose: false,
+                    },
+                );
+
+                PlayerAnimationState::Dashing
+            }
+            (PlayerAnimationState::Dashing, PlayerAnimationEvent::Dash) => {
+                PlayerAnimationState::Dashing
+            }
+            (PlayerAnimationState::Idle, PlayerAnimationEvent::Dash) => {
+                println!("State machine Idle -> Walk!");
+                entity::set_animation_controller(
+                    entity_id,
+                    AnimationController {
+                        actions: &[AnimationAction {
+                            clip_url: &asset::url("assets/mecha.glb/animations/dash_0.anim")
+                                .unwrap(),
+                            looping: true,
+                            weight: 1.,
+                        }],
+                        apply_base_pose: false,
+                    },
+                );
+
+                PlayerAnimationState::Dashing
+            }
+            (PlayerAnimationState::Dashing, PlayerAnimationEvent::Walk) => {
+                println!("State machine Idle -> Walk!");
+                entity::set_animation_controller(
+                    entity_id,
+                    AnimationController {
+                        actions: &[AnimationAction {
+                            clip_url: &asset::url("assets/mecha.glb/animations/walk_2.anim")
+                                .unwrap(),
+                            looping: true,
+                            weight: 1.,
+                        }],
+                        apply_base_pose: false,
+                    },
+                );
+
+                PlayerAnimationState::Walking
+            }
+
             (PlayerAnimationState::Idle, PlayerAnimationEvent::Walk) => {
                 let anim_player_id =
                     entity::get_component(entity_id, apply_animation_player()).unwrap();
@@ -52,6 +109,23 @@ impl PlayerAnimationState {
                 idle.apply_base_pose(true);
                 println!("State machine Walking -> Stop!");
                 anim_player.play(idle);
+                PlayerAnimationState::Idle
+            }
+            (PlayerAnimationState::Dashing, PlayerAnimationEvent::Stop) => {
+                println!("State machine Walking -> Stop!");
+                entity::set_animation_controller(
+                    entity_id,
+                    AnimationController {
+                        actions: &[AnimationAction {
+                            clip_url: &asset::url("assets/mecha.glb/animations/idle_1.anim")
+                                .unwrap(),
+                            looping: true,
+                            weight: 1.,
+                        }],
+                        apply_base_pose: false,
+                    },
+                );
+
                 PlayerAnimationState::Idle
             }
             (PlayerAnimationState::Idle, PlayerAnimationEvent::Stop) => PlayerAnimationState::Idle,

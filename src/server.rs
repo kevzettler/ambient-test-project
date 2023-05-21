@@ -22,7 +22,17 @@ use components::{
     player_animation_state, player_input_direction, player_mesh_ref, player_mouse_delta_x,
     player_mouse_delta_y, player_text_container_ref, player_vertical_rotation_angle,
     view_vertical_rotation,
+    player_mesh_ref,
+    player_input_direction,
+    player_mouse_delta_x,
+    player_mouse_delta_y,
+    player_vertical_rotation_angle,
+    player_text_container_ref,
+    player_animation_state,
+    player_movement_state
 };
+
+
 
 mod player_animation_state;
 use player_animation_state::{PlayerAnimationEvent, PlayerAnimationState};
@@ -118,6 +128,7 @@ pub fn main() {
     // capture input messages from client and update state
     messages::Input::subscribe(move |source, msg| {
         let Some(player_id) = source.client_entity_id() else { return; };
+        entity::set_component(player_id, player_movement_state(), msg.is_dashing);
         entity::set_component(player_id, player_input_direction(), msg.input_direction);
         entity::set_component(player_id, player_mouse_delta_x(), msg.mouse_delta_x);
         entity::set_component(player_id, player_mouse_delta_y(), msg.mouse_delta_y);
@@ -128,9 +139,10 @@ pub fn main() {
         player_input_direction(),
         player_mouse_delta_x(),
         player_mouse_delta_y(),
+        player_movement_state(),
     ))
     .each_frame(move |players| {
-        for (player_id, (_, input_direction, mouse_delta_x, mouse_delta_y)) in players {
+        for (player_id, (_, input_direction, mouse_delta_x, mouse_delta_y, is_dashing)) in players {
             // apply input messages and update player rotation and position
 
             //update player rotation
@@ -184,11 +196,13 @@ pub fn main() {
                 }
             };
             if input_direction.x == 0.0 && input_direction.y == 0.0 {
-                player_animation_enum =
-                    player_animation_enum.transition(player_mesh_id, PlayerAnimationEvent::Stop);
-            } else {
-                player_animation_enum =
-                    player_animation_enum.transition(player_mesh_id, PlayerAnimationEvent::Walk);
+                player_animation_enum = player_animation_enum.transition(player_mesh_id, PlayerAnimationEvent::Stop);
+            }else{
+                if is_dashing {
+                    player_animation_enum = player_animation_enum.transition(player_mesh_id, PlayerAnimationEvent::Dash);
+                } else {
+                    player_animation_enum = player_animation_enum.transition(player_mesh_id, PlayerAnimationEvent::Walk);
+                }
             }
             entity::set_component(
                 player_mesh_id,

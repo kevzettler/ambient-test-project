@@ -69,14 +69,35 @@ fn main() {
         }
     });
 
+    let mut dash_timer = 0;
+    let mut is_dashing = false;
     let mut cursor_lock = input::CursorLockGuard::new(true);
     ambient_api::messages::Frame::subscribe(move |_| {
         let (delta, input) = input::get_delta();
+
+        if dash_timer > 0 {
+            dash_timer -= 1;
+        }
+        if delta.keys.contains(&KeyCode::W){
+            if dash_timer > 0 {
+                is_dashing = true;
+                dash_timer = 0;
+            }else{
+                dash_timer += 50;
+            }
+        }
+
+        if input.keys.len() == 0 {
+            is_dashing = false;
+        }
+
+
         if !cursor_lock.auto_unlock_on_escape(&input) {
             return;
         }
 
         let mut input_direction = Vec2::ZERO;
+
         if input.keys.contains(&KeyCode::W) {
             input_direction.x += 1.0;
         }
@@ -91,9 +112,10 @@ fn main() {
         }
 
         messages::Input::new(
+            is_dashing,
             input_direction,
             delta.mouse_position.x,
-            delta.mouse_position.y
+            delta.mouse_position.y,
         ).send_server_reliable();
     });
 }
