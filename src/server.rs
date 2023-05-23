@@ -63,15 +63,15 @@ pub fn main() {
         .spawn();
 
     // static entity
-    Entity::new()
-        .with_merge(make_transformable())
-        .with(
-            prefab_from_url(),
-            asset::url("assets/mecha.glb").unwrap(),
-        )
-        .with(translation(), vec3(2., 0.0, 2.))
-        .with(rotation(), Quat::from_rotation_z(-std::f32::consts::FRAC_PI_2)) // rotate blender mesh to fit world coordinates
-        .spawn();
+    // Entity::new()
+    //     .with_merge(make_transformable())
+    //     .with(
+    //         prefab_from_url(),
+    //         asset::url("assets/mecha.glb").unwrap(),
+    //     )
+    //     .with(translation(), vec3(2., 0.0, 2.))
+    //     .with(rotation(), Quat::from_rotation_z(-std::f32::consts::FRAC_PI_2)) // rotate blender mesh to fit world coordinates
+    //     .spawn();
 
     spawn_query(player()).bind(move |players| {
         for (id, _) in players {
