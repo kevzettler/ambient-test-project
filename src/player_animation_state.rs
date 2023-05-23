@@ -27,7 +27,7 @@ impl PlayerAnimationState {
                     entity_id,
                     AnimationController {
                         actions: &[AnimationAction {
-                            clip_url: &asset::url("assets/mecha.glb/animations/walk_2.anim").unwrap(),
+                            clip_url: &asset::url("assets/mecha.glb/animations/walk_4.anim").unwrap(),
                             looping: true,
                             weight: 1.,
                         }],
