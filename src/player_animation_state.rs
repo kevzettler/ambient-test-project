@@ -45,9 +45,10 @@ impl PlayerAnimationState {
                     AnimationController {
                         actions: &[AnimationAction {
                             clip_url: &asset::url("assets/mecha.glb/animations/idle_1.anim").unwrap(),
-                            looping: true,
+                            looping: false,
                             weight: 1.,
-                        }],
+                        }
+                        ],
                         apply_base_pose: false,
                     },
                 );

@@ -5,7 +5,7 @@ use ambient_api::{
     components::core::{
         physics::{
             character_controller_height, character_controller_radius,
-            plane_collider, visualizing,
+            plane_collider
         },
         player::player,
         primitives::{cube, quad},
@@ -122,7 +122,6 @@ pub fn main() {
                     .with_default(player_input_direction())
                     .with_default(player_mouse_delta_x())
                     .with_default(player_mouse_delta_y())
-                    .with_default(visualizing()),
             );
         }
         });
