@@ -2,7 +2,9 @@ use core::f32::consts::FRAC_PI_2;
 use num;
 
 use ambient_api::{
+    animation::{AnimationPlayer, PlayClipFromUrlNode},
     components::core::{
+        animation::apply_animation_player,
         physics::{
             character_controller_height, character_controller_radius,
             plane_collider
@@ -62,17 +64,6 @@ pub fn main() {
         .with_default(plane_collider())
         .spawn();
 
-    // static entity
-    // Entity::new()
-    //     .with_merge(make_transformable())
-    //     .with(
-    //         prefab_from_url(),
-    //         asset::url("assets/mecha.glb").unwrap(),
-    //     )
-    //     .with(translation(), vec3(2., 0.0, 2.))
-    //     .with(rotation(), Quat::from_rotation_z(-std::f32::consts::FRAC_PI_2)) // rotate blender mesh to fit world coordinates
-    //     .spawn();
-
     spawn_query(player()).bind(move |players| {
         for (id, _) in players {
             // add mecha to player id
@@ -87,6 +78,13 @@ pub fn main() {
                 .with(player_animation_state(), PlayerAnimationState::Idle as u32)
                 .with(rotation(), Quat::from_rotation_z(-std::f32::consts::FRAC_PI_2)) // rotate blender mesh to fit world coordinates
                 .spawn();
+
+            let idle = PlayClipFromUrlNode::new(
+                asset::url("assets/mecha.glb/animations/idle_1.anim").unwrap(),
+            );
+
+            let anim_player = AnimationPlayer::new(idle);
+            entity::add_component(player_mesh_id, apply_animation_player(), anim_player.0);
 
             let text = make_text()
                 .with(color(), vec4(1.0, 1.0, 1.0, 1.0))

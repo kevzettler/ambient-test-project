@@ -1,6 +1,8 @@
 use ambient_api::{
-    entity::{AnimationAction, AnimationController},
+    components::core::animation::apply_animation_player,
+    animation::{AnimationPlayer, BlendNode, PlayClipFromUrlNode},
     prelude::*,
+    entity::get_component,
 };
 use num_derive::FromPrimitive;
 
@@ -21,38 +23,25 @@ pub enum PlayerAnimationEvent {
 impl PlayerAnimationState {
     pub fn transition(self, entity_id:EntityId, event: PlayerAnimationEvent) -> PlayerAnimationState{
          return match (self, event) {
-            (PlayerAnimationState::Idle, PlayerAnimationEvent::Walk) => {
+             (PlayerAnimationState::Idle, PlayerAnimationEvent::Walk) => {
+                 let anim_player_id = entity::get_component(entity_id, apply_animation_player()).unwrap();
+                 let anim_player = AnimationPlayer(anim_player_id);
+                 let walk = PlayClipFromUrlNode::new(
+                     asset::url("assets/mecha.glb/animations/walk_4.anim").unwrap(),
+                 );
                 println!("State machine Idle -> Walk!");
-                entity::set_animation_controller(
-                    entity_id,
-                    AnimationController {
-                        actions: &[AnimationAction {
-                            clip_url: &asset::url("assets/mecha.glb/animations/walk_4.anim").unwrap(),
-                            looping: true,
-                            weight: 1.,
-                        }],
-                        apply_base_pose: false,
-                    },
-                );
-
+                anim_player.play(walk);
                 PlayerAnimationState::Walking
             },
-            (PlayerAnimationState::Walking, PlayerAnimationEvent::Walk) => PlayerAnimationState::Walking,
-            (PlayerAnimationState::Walking, PlayerAnimationEvent::Stop) => {
+             (PlayerAnimationState::Walking, PlayerAnimationEvent::Walk) => PlayerAnimationState::Walking,
+             (PlayerAnimationState::Walking, PlayerAnimationEvent::Stop) => {
+                 let anim_player_id = entity::get_component(entity_id, apply_animation_player()).unwrap();
+                 let anim_player = AnimationPlayer(anim_player_id);
+                 let idle = PlayClipFromUrlNode::new(
+                     asset::url("assets/mecha.glb/animations/idle_1.anim").unwrap(),
+                 );
                 println!("State machine Walking -> Stop!");
-                entity::set_animation_controller(
-                    entity_id,
-                    AnimationController {
-                        actions: &[AnimationAction {
-                            clip_url: &asset::url("assets/mecha.glb/animations/idle_1.anim").unwrap(),
-                            looping: false,
-                            weight: 1.,
-                        }
-                        ],
-                        apply_base_pose: false,
-                    },
-                );
-
+                anim_player.play(idle);
                 PlayerAnimationState::Idle
             },
             (PlayerAnimationState::Idle, PlayerAnimationEvent::Stop) => PlayerAnimationState::Idle,
