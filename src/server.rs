@@ -5,36 +5,27 @@ use ambient_api::{
     animation::{AnimationPlayer, PlayClipFromUrlNode},
     components::core::{
         animation::apply_animation_player,
-        physics::{
-            character_controller_height, character_controller_radius,
-            plane_collider
-        },
+        ecs::{children, parent},
+        physics::{character_controller_height, character_controller_radius, plane_collider},
         player::player,
+        prefab::prefab_from_url,
         primitives::{cube, quad},
         rendering::color,
-        transform::{rotation, scale, translation, local_to_parent, spherical_billboard},
-        prefab::prefab_from_url,
-        ecs::{children, parent},
         text::{font_size, text},
+        transform::{local_to_parent, rotation, scale, spherical_billboard, translation},
     },
     concepts::make_transformable,
     prelude::*,
 };
 
 use components::{
+    player_animation_state, player_input_direction, player_mesh_ref, player_mouse_delta_x,
+    player_mouse_delta_y, player_text_container_ref, player_vertical_rotation_angle,
     view_vertical_rotation,
-    player_mesh_ref,
-    player_input_direction,
-    player_mouse_delta_x,
-    player_mouse_delta_y,
-    player_vertical_rotation_angle,
-    player_text_container_ref,
-    player_animation_state
 };
 
 mod player_animation_state;
 use player_animation_state::{PlayerAnimationEvent, PlayerAnimationState};
-
 
 fn make_text() -> Entity {
     Entity::new()
@@ -69,14 +60,14 @@ pub fn main() {
             // add mecha to player id
             let player_mesh_id = Entity::new()
                 .with_merge(make_transformable())
-                .with(
-                    prefab_from_url(),
-                    asset::url("assets/mecha.glb").unwrap(),
-                )
+                .with(prefab_from_url(), asset::url("assets/mecha.glb").unwrap())
                 .with_default(local_to_parent())
                 .with(parent(), id)
                 .with(player_animation_state(), PlayerAnimationState::Idle as u32)
-                .with(rotation(), Quat::from_rotation_z(-std::f32::consts::FRAC_PI_2)) // rotate blender mesh to fit world coordinates
+                .with(
+                    rotation(),
+                    Quat::from_rotation_z(-std::f32::consts::FRAC_PI_2),
+                ) // rotate blender mesh to fit world coordinates
                 .spawn();
 
             let idle = PlayClipFromUrlNode::new(
@@ -94,14 +85,13 @@ pub fn main() {
                 .spawn();
 
             let text_container = make_transformable()
-                    .with_default(main_scene())
-                    .with_default(local_to_world())
-                    .with_default(spherical_billboard())
-                    .with(translation(), vec3(-5., 0., 5.))
-                    .with(children(), vec![text])
+                .with_default(main_scene())
+                .with_default(local_to_world())
+                .with_default(spherical_billboard())
+                .with(translation(), vec3(-5., 0., 5.))
+                .with(children(), vec![text])
                 .spawn();
             entity::add_component(id, player_text_container_ref(), text_container);
-
 
             // create root player entity
             entity::add_components(
@@ -119,10 +109,10 @@ pub fn main() {
                     .with(character_controller_radius(), 0.5)
                     .with_default(player_input_direction())
                     .with_default(player_mouse_delta_x())
-                    .with_default(player_mouse_delta_y())
+                    .with_default(player_mouse_delta_y()),
             );
         }
-        });
+    });
 
     // capture input messages from client and update state
     messages::Input::subscribe(move |source, msg| {
@@ -152,9 +142,13 @@ pub fn main() {
             //     *q *= Quat::from_rotation_y(mouse_delta_y * 0.01);
             // });
 
-            entity::mutate_component(player_id, player_vertical_rotation_angle(), |angle: &mut f32| {
-                *angle += mouse_delta_y * 0.01;
-            });
+            entity::mutate_component(
+                player_id,
+                player_vertical_rotation_angle(),
+                |angle: &mut f32| {
+                    *angle += mouse_delta_y * 0.01;
+                },
+            );
 
             // Clamp the vertical rotation angle between a min and max value
             let min_angle = -FRAC_PI_2 + 0.1; // Adjust the 0.1 value to avoid gimbal lock
@@ -165,8 +159,11 @@ pub fn main() {
 
             // Update the player_lookat_rotation quaternion
             let clamped_vertical_rotation = Quat::from_rotation_y(clamped_angle);
-            entity::set_component(player_id, view_vertical_rotation(), clamped_vertical_rotation);
-
+            entity::set_component(
+                player_id,
+                view_vertical_rotation(),
+                clamped_vertical_rotation,
+            );
 
             let player_rotation = entity::get_component(player_id, rotation()).unwrap();
             let player_forward = player_rotation * world_front;
@@ -174,10 +171,11 @@ pub fn main() {
             let speed = 0.1;
             let mut player_direction: Vec3 = Vec3::ZERO;
 
-
             let player_mesh_id = entity::get_component(player_id, player_mesh_ref()).unwrap();
-            let mut player_animation_id = entity::get_component(player_mesh_id, player_animation_state()).unwrap();
-            let mut player_animation_enum = match num::FromPrimitive::from_u32(player_animation_id) {
+            let mut player_animation_id =
+                entity::get_component(player_mesh_id, player_animation_state()).unwrap();
+            let mut player_animation_enum = match num::FromPrimitive::from_u32(player_animation_id)
+            {
                 Some(animation_state) => animation_state,
                 None => {
                     println!("Unkown animation state");
@@ -185,12 +183,17 @@ pub fn main() {
                 }
             };
             if input_direction.x == 0.0 && input_direction.y == 0.0 {
-                player_animation_enum = player_animation_enum.transition(player_mesh_id, PlayerAnimationEvent::Stop);
-            }else{
-                player_animation_enum = player_animation_enum.transition(player_mesh_id, PlayerAnimationEvent::Walk);
+                player_animation_enum =
+                    player_animation_enum.transition(player_mesh_id, PlayerAnimationEvent::Stop);
+            } else {
+                player_animation_enum =
+                    player_animation_enum.transition(player_mesh_id, PlayerAnimationEvent::Walk);
             }
-            entity::set_component(player_mesh_id, player_animation_state(), player_animation_enum as u32);
-
+            entity::set_component(
+                player_mesh_id,
+                player_animation_state(),
+                player_animation_enum as u32,
+            );
 
             if input_direction.x == 1.0 {
                 player_direction += player_forward;
@@ -210,7 +213,8 @@ pub fn main() {
 
             // update player text
             let player_position = entity::get_component(player_id, translation()).unwrap();
-            let player_text_container = entity::get_component(player_id, player_text_container_ref()).unwrap();
+            let player_text_container =
+                entity::get_component(player_id, player_text_container_ref()).unwrap();
             entity::set_component(
                 player_text_container,
                 translation(),
@@ -220,5 +224,5 @@ pub fn main() {
             //TODO how to update physics here?
             //physics::move_character(player_id, displace, 0.01, frametime());
         }
-        });
+    });
 }
