@@ -34,6 +34,7 @@ impl PlayerAnimationState {
                 let walk = PlayClipFromUrlNode::new(
                     asset::url("assets/mecha.glb/animations/walk_4.anim").unwrap(),
                 );
+                walk.apply_base_pose(true);
                 println!("State machine Idle -> Walk!");
                 anim_player.play(walk);
                 PlayerAnimationState::Walking
@@ -48,6 +49,7 @@ impl PlayerAnimationState {
                 let idle = PlayClipFromUrlNode::new(
                     asset::url("assets/mecha.glb/animations/idle_1.anim").unwrap(),
                 );
+                idle.apply_base_pose(true);
                 println!("State machine Walking -> Stop!");
                 anim_player.play(idle);
                 PlayerAnimationState::Idle

@@ -73,6 +73,7 @@ pub fn main() {
             let idle = PlayClipFromUrlNode::new(
                 asset::url("assets/mecha.glb/animations/idle_1.anim").unwrap(),
             );
+            idle.apply_base_pose(true);
 
             let anim_player = AnimationPlayer::new(idle);
             entity::add_component(player_mesh_id, apply_animation_player(), anim_player.0);
