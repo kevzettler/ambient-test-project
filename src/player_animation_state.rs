@@ -8,7 +8,7 @@ use num_derive::FromPrimitive;
 
 // state machine from:
 // https://play.rust-lang.org/?version=stable&mode=debug&edition=2015&gist=ee3e4df093c136ced7b394dc7ffb78e1
-#[derive(Debug, PartialEq, Clone, Copy, FromPrimitive)]
+#[derive(Debug, PartialEq, Eq, Hash, Clone, Copy, FromPrimitive)]
 pub enum PlayerAnimationState {
     Idle,
     Walking,
@@ -22,113 +22,114 @@ pub enum PlayerAnimationEvent {
     Dash,
 }
 
-impl PlayerAnimationState {
+pub struct PlayerAnimationController {
+    state: PlayerAnimationState,
+    map: HashMap<PLayerAnimationState, PlayClipFromUrlNode>,
+}
+
+impl PlayerAnimationController {
+    pub fn new() -> Self {
+        let state = PlayerAnimationState;
+        let events = PlayerAnimationEvent;
+        let mut map = HashMap::new();
+        map.insert(
+            PlayerAnimationState::Idle,
+            PlayClipFromUrlNode::new(
+                asset::url("assets/mecha.glb/animations/idle_1.anim").unwrap(),
+            ),
+        );
+
+        map.insert(
+            PlayerAnimationState::Walking,
+            PlayClipFromUrlNode::new(
+                asset::url("assets/mecha.glb/animations/walk_4.anim").unwrap(),
+            ),
+        );
+
+        map.insert(
+            PlayerAnimationState::Walking,
+            PlayClipFromUrlNode::new(
+                asset::url("assets/mecha.glb/animations/dash_0.anim").unwrap(),
+            ),
+        );
+
+        PlayerAnimationController {
+            state: PlayerAnimationState::Idle,
+            map,
+        }
+    }
+
     pub fn transition(
-        self,
+        &mut self,
         entity_id: EntityId,
         event: PlayerAnimationEvent,
     ) -> PlayerAnimationState {
-        return match (self, event) {
-            (PlayerAnimationState::Walking, PlayerAnimationEvent::Dash) => {
-                println!("State machine Idle -> Walk!");
-                entity::set_animation_controller(
-                    entity_id,
-                    AnimationController {
-                        actions: &[AnimationAction {
-                            clip_url: &asset::url("assets/mecha.glb/animations/dash_0.anim")
-                                .unwrap(),
-                            looping: true,
-                            weight: 1.,
-                        }],
-                        apply_base_pose: false,
-                    },
-                );
-
-                PlayerAnimationState::Dashing
-            }
-            (PlayerAnimationState::Dashing, PlayerAnimationEvent::Dash) => {
-                PlayerAnimationState::Dashing
-            }
-            (PlayerAnimationState::Idle, PlayerAnimationEvent::Dash) => {
-                println!("State machine Idle -> Walk!");
-                entity::set_animation_controller(
-                    entity_id,
-                    AnimationController {
-                        actions: &[AnimationAction {
-                            clip_url: &asset::url("assets/mecha.glb/animations/dash_0.anim")
-                                .unwrap(),
-                            looping: true,
-                            weight: 1.,
-                        }],
-                        apply_base_pose: false,
-                    },
-                );
-
-                PlayerAnimationState::Dashing
-            }
-            (PlayerAnimationState::Dashing, PlayerAnimationEvent::Walk) => {
-                println!("State machine Idle -> Walk!");
-                entity::set_animation_controller(
-                    entity_id,
-                    AnimationController {
-                        actions: &[AnimationAction {
-                            clip_url: &asset::url("assets/mecha.glb/animations/walk_2.anim")
-                                .unwrap(),
-                            looping: true,
-                            weight: 1.,
-                        }],
-                        apply_base_pose: false,
-                    },
-                );
-
-                PlayerAnimationState::Walking
-            }
-
+        return match (self.state, event) {
             (PlayerAnimationState::Idle, PlayerAnimationEvent::Walk) => {
+                println!("State machine Idle -> Walk!");
                 let anim_player_id =
                     entity::get_component(entity_id, apply_animation_player()).unwrap();
                 let anim_player = AnimationPlayer(anim_player_id);
-                let walk = PlayClipFromUrlNode::new(
-                    asset::url("assets/mecha.glb/animations/walk_4.anim").unwrap(),
-                );
-                walk.apply_base_pose(true);
-                println!("State machine Idle -> Walk!");
+                let walk = self.map.get(&PlayerAnimationState::Walking).unwarap();
                 anim_player.play(walk);
                 PlayerAnimationState::Walking
             }
+            (PlayerAnimationState::Idle, PlayerAnimationEvent::Stop) => PlayerAnimationState::Idle,
+
+            (PlayerAnimationState::Idle, PlayerAnimationEvent::Dash) => {
+                println!("State machine Idle -> Dash!");
+                let anim_player_id =
+                    entity::get_component(entity_id, apply_animation_player()).unwrap();
+                let anim_player = AnimationPlayer(anim_player_id);
+                let dashing = self.map.get(&PlayerAnimationState::Dashing).unwarap();
+                anim_player.play(idle);
+                PlayerAnimationState::Dashing
+            }
+
             (PlayerAnimationState::Walking, PlayerAnimationEvent::Walk) => {
                 PlayerAnimationState::Walking
             }
             (PlayerAnimationState::Walking, PlayerAnimationEvent::Stop) => {
+                println!("State machine Walking -> Stop!");
                 let anim_player_id =
                     entity::get_component(entity_id, apply_animation_player()).unwrap();
                 let anim_player = AnimationPlayer(anim_player_id);
-                let idle = PlayClipFromUrlNode::new(
-                    asset::url("assets/mecha.glb/animations/idle_1.anim").unwrap(),
-                );
-                idle.apply_base_pose(true);
-                println!("State machine Walking -> Stop!");
+                let idle = self.map.get(&PlayerAnimationState::Idle).unwarap();
                 anim_player.play(idle);
                 PlayerAnimationState::Idle
             }
-            (PlayerAnimationState::Dashing, PlayerAnimationEvent::Stop) => {
-                println!("State machine Walking -> Stop!");
-                entity::set_animation_controller(
-                    entity_id,
-                    AnimationController {
-                        actions: &[AnimationAction {
-                            clip_url: &asset::url("assets/mecha.glb/animations/idle_1.anim")
-                                .unwrap(),
-                            looping: true,
-                            weight: 1.,
-                        }],
-                        apply_base_pose: false,
-                    },
-                );
+            (PlayerAnimationState::Walking, PlayerAnimationEvent::Dash) => {
+                println!("State machine Walking -> Dash!");
+                let anim_player_id =
+                    entity::get_component(entity_id, apply_animation_player()).unwrap();
+                let anim_player = AnimationPlayer(anim_player_id);
+                let dashing = self.map.get(&PlayerAnimationState::Dashing).unwarap();
+                anim_player.play(idle);
+                PlayerAnimationState::Dashing
+            }
 
+            (PlayerAnimationState::Dashing, PlayerAnimationEvent::Dash) => {
+                PlayerAnimationState::Dashing
+            }
+            (PlayerAnimationState::Dashing, PlayerAnimationEvent::Stop) => {
+                println!("State machine Dashing -> Stop!");
+                let anim_player_id =
+                    entity::get_component(entity_id, apply_animation_player()).unwrap();
+                let anim_player = AnimationPlayer(anim_player_id);
+                let idle = self.map.get(&PlayerAnimationState::Idle).unwarap();
+                anim_player.play(idle);
                 PlayerAnimationState::Idle
             }
-            (PlayerAnimationState::Idle, PlayerAnimationEvent::Stop) => PlayerAnimationState::Idle,
+
+            (PlayerAnimationState::Dashing, PlayerAnimationEvent::Walk) => {
+                println!("State machine Dashing -> Walk!");
+                let anim_player_id =
+                    entity::get_component(entity_id, apply_animation_player()).unwrap();
+                let anim_player = AnimationPlayer(anim_player_id);
+                let walk = self.map.get(&PlayerAnimationState::Walking).unwarap();
+                anim_player.play(walk);
+                PlayerAnimationState::Walking
+            }
         };
     }
 }
