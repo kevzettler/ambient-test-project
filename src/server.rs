@@ -16,9 +16,8 @@ use ambient_api::{
 };
 
 use components::{
-    player_animation_controller_ref, player_input_direction, player_mesh_ref, player_mouse_delta_x,
-    player_mouse_delta_y, player_text_container_ref, player_vertical_rotation_angle,
-    view_vertical_rotation,
+    player_input_direction, player_mesh_ref, player_mouse_delta_x, player_mouse_delta_y,
+    player_text_container_ref, player_vertical_rotation_angle, view_vertical_rotation,
 };
 
 mod player_animation_controller;
@@ -64,11 +63,9 @@ pub fn main() {
                     rotation(),
                     Quat::from_rotation_z(-std::f32::consts::FRAC_PI_2),
                 ) // rotate blender mesh to fit world coordinates
-                .with(
-                    player_animation_controller_ref(),
-                    PlayerAnimationController::new().0,
-                )
                 .spawn();
+
+            PlayerAnimationController::new(player_mesh_id);
 
             let text = make_text()
                 .with(color(), vec4(1.0, 1.0, 1.0, 1.0))
@@ -164,15 +161,12 @@ pub fn main() {
             let speed = 0.1;
             let mut player_direction: Vec3 = Vec3::ZERO;
             let player_mesh_id = entity::get_component(player_id, player_mesh_ref()).unwrap();
-
-            let animation_controller_id =
-                entity::get_component(player_mesh_id, player_animation_controller_ref()).unwrap();
-            let mut animation_controller = PlayerAnimationController(animation_controller_id);
+            let mut animation_controller = PlayerAnimationController(player_mesh_id);
 
             if input_direction.x == 0.0 && input_direction.y == 0.0 {
-                animation_controller.transition(player_mesh_id, PlayerAnimationEvent::Stop);
+                animation_controller.transition(PlayerAnimationEvent::Stop);
             } else {
-                animation_controller.transition(player_mesh_id, PlayerAnimationEvent::Walk);
+                animation_controller.transition(PlayerAnimationEvent::Walk);
             }
 
             if input_direction.x == 1.0 {

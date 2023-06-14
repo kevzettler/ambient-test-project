@@ -1,4 +1,4 @@
-use crate::components::{player_animation_controller_ref, player_animation_state};
+use crate::components::player_animation_state;
 use ambient_api::{
     animation::{AnimationPlayer, PlayClipFromUrlNode},
     components::core::animation::apply_animation_player,
@@ -32,31 +32,26 @@ fn lookup_clip_path(animation_state: PlayerAnimationState) -> &'static str {
 
 pub struct PlayerAnimationController(pub EntityId);
 impl PlayerAnimationController {
-    pub fn new() -> Self {
+    pub fn new(target_id: EntityId) -> Self {
         let idle_path = lookup_clip_path(PlayerAnimationState::Idle);
         let idle = PlayClipFromUrlNode::new(asset::url(idle_path).unwrap());
         let anim_player = AnimationPlayer::new(idle);
 
-        let entity_id = Entity::new()
-            .with(apply_animation_player(), anim_player.0)
-            .with(player_animation_state(), PlayerAnimationState::Idle as u32)
-            .with(name(), "Animation Controller".to_string())
-            .spawn();
+        entity::add_components(
+            target_id,
+            Entity::new()
+                .with(apply_animation_player(), anim_player.0)
+                .with(player_animation_state(), PlayerAnimationState::Idle as u32),
+        );
 
-        Self(entity_id)
+        Self(target_id)
     }
 
-    pub fn transition(
-        &mut self,
-        target_entity_id: EntityId,
-        event: PlayerAnimationEvent,
-    ) -> PlayerAnimationState {
-        let player_animation_controller_id =
-            entity::get_component(target_entity_id, player_animation_controller_ref()).unwrap();
+    pub fn transition(&mut self, event: PlayerAnimationEvent) -> PlayerAnimationState {
+        let target_entity_id = self.0;
 
         let player_animation_id =
-            entity::get_component(player_animation_controller_id, player_animation_state())
-                .unwrap();
+            entity::get_component(target_entity_id, player_animation_state()).unwrap();
 
         let current_state = match num::FromPrimitive::from_u32(player_animation_id) {
             Some(animation_state) => animation_state,
@@ -98,7 +93,7 @@ impl PlayerAnimationController {
             }
         };
 
-        if (current_state.eq(&next_state)) {
+        if current_state.eq(&next_state) {
             // return early no state transition
             return next_state;
         }
@@ -111,14 +106,13 @@ impl PlayerAnimationController {
         let clip = PlayClipFromUrlNode::new(asset::url(clip_path).unwrap());
 
         let anim_player_id =
-            entity::get_component(player_animation_controller_id, apply_animation_player())
-                .unwrap();
+            entity::get_component(target_entity_id, apply_animation_player()).unwrap();
 
         let anim_player = AnimationPlayer(anim_player_id);
         anim_player.play(clip);
 
         entity::set_component(
-            player_animation_controller_id,
+            target_entity_id,
             player_animation_state(),
             next_state as u32,
         );
