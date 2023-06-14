@@ -18,8 +18,8 @@ fn main() {
 
     // offset view sphere up and to the right
     let view_sphere_offset = world_up * 7. + world_right * 2.;
-    let lookat_offset:Vec3 = view_sphere_offset + world_front * 7.;
-    let eye_offset:Vec3 = view_sphere_offset - world_front * 7.;
+    let lookat_offset: Vec3 = view_sphere_offset + world_front * 7.;
+    let eye_offset: Vec3 = view_sphere_offset - world_front * 7.;
 
     spawn_query((player(), user_id())).bind(move |players| {
         for (id, (_, user)) in players {
@@ -42,30 +42,31 @@ fn main() {
     // Since we're only attaching player_camera_ref to the local player, this system will only
     // run for the local player
     query((player(), player_camera_ref())).each_frame(move |players| {
-        for (player_id, (_, camera_id )) in players {
-                // calclulate camera position
-                // this is like an arc ball camera. There is a point offset from the players position that is the center of a sphere
-                // There is eye on one point of the sphere and a target on the other
-                // There is a quaternion that is updated with horizontal and vertical rotations from mouse input
-                // there is a vector that is calculated from the world front vector and the rotation quaternion
-                //
-                let player_rotation = entity::get_component(player_id, rotation()).unwrap();
-                let player_right = player_rotation * world_right;
-                let view_vertical_rotation = entity::get_component(player_id, view_vertical_rotation()).unwrap();
-                let camera_rotation_quat = player_rotation * view_vertical_rotation;
+        for (player_id, (_, camera_id)) in players {
+            // calclulate camera position
+            // this is like an arc ball camera. There is a point offset from the players position that is the center of a sphere
+            // There is eye on one point of the sphere and a target on the other
+            // There is a quaternion that is updated with horizontal and vertical rotations from mouse input
+            // there is a vector that is calculated from the world front vector and the rotation quaternion
+            //
+            let player_rotation = entity::get_component(player_id, rotation()).unwrap();
+            let player_right = player_rotation * world_right;
+            let view_vertical_rotation =
+                entity::get_component(player_id, view_vertical_rotation()).unwrap();
+            let camera_rotation_quat = player_rotation * view_vertical_rotation;
 
-                let player_position = entity::get_component(player_id, translation()).unwrap();
+            let player_position = entity::get_component(player_id, translation()).unwrap();
 
-                let camera_front = camera_rotation_quat * world_front;
-                let lookat_projection = camera_front * 30.;
-                let view_sphere_offset = world_up * 7. + player_right * 2.;
-                let lookat_position = player_position + view_sphere_offset + lookat_projection;
-                // update camera lookat
-                entity::set_component(camera_id, lookat_target(), lookat_position);
+            let camera_front = camera_rotation_quat * world_front;
+            let lookat_projection = camera_front * 30.;
+            let view_sphere_offset = world_up * 7. + player_right * 2.;
+            let lookat_position = player_position + view_sphere_offset + lookat_projection;
+            // update camera lookat
+            entity::set_component(camera_id, lookat_target(), lookat_position);
 
-                let camera_projection = camera_front * Vec3::NEG_ONE * 10.;
-                let eye_position: Vec3 = player_position + view_sphere_offset + camera_projection;
-                entity::set_component(camera_id, translation(), eye_position);
+            let camera_projection = camera_front * Vec3::NEG_ONE * 10.;
+            let eye_position: Vec3 = player_position + view_sphere_offset + camera_projection;
+            entity::set_component(camera_id, translation(), eye_position);
         }
     });
 
@@ -78,11 +79,11 @@ fn main() {
         if dash_timer > 0 {
             dash_timer -= 1;
         }
-        if delta.keys.contains(&KeyCode::W){
+        if delta.keys.contains(&KeyCode::W) {
             if dash_timer > 0 {
                 is_dashing = true;
                 dash_timer = 0;
-            }else{
+            } else {
                 dash_timer += 50;
             }
         }
@@ -90,7 +91,6 @@ fn main() {
         if input.keys.len() == 0 {
             is_dashing = false;
         }
-
 
         if !cursor_lock.auto_unlock_on_escape(&input) {
             return;
@@ -111,11 +111,14 @@ fn main() {
             input_direction.y += 1.0;
         }
 
+        println!("input direction??? {:?}", input_direction);
+
         messages::Input::new(
-            is_dashing,
             input_direction,
+            is_dashing,
             delta.mouse_position.x,
             delta.mouse_position.y,
-        ).send_server_reliable();
+        )
+        .send_server_reliable();
     });
 }

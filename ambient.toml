@@ -28,7 +28,7 @@ player_movement_state = { type = "Bool", name = "Players movment state, jumping,
 name = "Player Input"
 description = "Describes the input state of the player."
 [messages.input.fields]
-is_dashing = { type = "Bool", name = "player has enabled dashing", description = "The movement state of the player"}
 input_direction = { type = "Vec2", name = "Direction", description = "The movement direction of the player." }
+is_dashing = { type = "Bool", name = "player has enabled dashing", description = "The movement state of the player"}
 mouse_delta_x = { type = "F32", name = "Mouse delta X", description = "The mouse delta X." }
 mouse_delta_y = { type = "F32", name = "Mouse delta Y", description = "The mouse delta Y." }
