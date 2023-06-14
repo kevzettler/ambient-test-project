@@ -1,10 +1,7 @@
 use core::f32::consts::FRAC_PI_2;
-use num;
 
 use ambient_api::{
-    animation::{AnimationPlayer, PlayClipFromUrlNode},
     components::core::{
-        animation::apply_animation_player,
         ecs::{children, parent},
         physics::{character_controller_height, character_controller_radius, plane_collider},
         player::player,
@@ -19,13 +16,13 @@ use ambient_api::{
 };
 
 use components::{
-    player_animation_state, player_input_direction, player_mesh_ref, player_mouse_delta_x,
+    player_animation_controller_ref, player_input_direction, player_mesh_ref, player_mouse_delta_x,
     player_mouse_delta_y, player_text_container_ref, player_vertical_rotation_angle,
     view_vertical_rotation,
 };
 
-mod player_animation_state;
-use player_animation_state::{PlayerAnimationEvent, PlayerAnimationState};
+mod player_animation_controller;
+use player_animation_controller::{PlayerAnimationController, PlayerAnimationEvent};
 
 fn make_text() -> Entity {
     Entity::new()
@@ -63,20 +60,15 @@ pub fn main() {
                 .with(prefab_from_url(), asset::url("assets/mecha.glb").unwrap())
                 .with_default(local_to_parent())
                 .with(parent(), id)
-                .with(player_animation_state(), PlayerAnimationState::Idle as u32)
                 .with(
                     rotation(),
                     Quat::from_rotation_z(-std::f32::consts::FRAC_PI_2),
                 ) // rotate blender mesh to fit world coordinates
+                .with(
+                    player_animation_controller_ref(),
+                    PlayerAnimationController::new().0,
+                )
                 .spawn();
-
-            let idle = PlayClipFromUrlNode::new(
-                asset::url("assets/mecha.glb/animations/idle_1.anim").unwrap(),
-            );
-            idle.apply_base_pose(true);
-
-            let anim_player = AnimationPlayer::new(idle);
-            entity::add_component(player_mesh_id, apply_animation_player(), anim_player.0);
 
             let text = make_text()
                 .with(color(), vec4(1.0, 1.0, 1.0, 1.0))
@@ -171,30 +163,17 @@ pub fn main() {
             let player_right = player_rotation * world_right;
             let speed = 0.1;
             let mut player_direction: Vec3 = Vec3::ZERO;
-
             let player_mesh_id = entity::get_component(player_id, player_mesh_ref()).unwrap();
-            let mut player_animation_id =
-                entity::get_component(player_mesh_id, player_animation_state()).unwrap();
-            let mut player_animation_enum = match num::FromPrimitive::from_u32(player_animation_id)
-            {
-                Some(animation_state) => animation_state,
-                None => {
-                    println!("Unkown animation state");
-                    PlayerAnimationState::Idle
-                }
-            };
+
+            let animation_controller_id =
+                entity::get_component(player_mesh_id, player_animation_controller_ref()).unwrap();
+            let mut animation_controller = PlayerAnimationController(animation_controller_id);
+
             if input_direction.x == 0.0 && input_direction.y == 0.0 {
-                player_animation_enum =
-                    player_animation_enum.transition(player_mesh_id, PlayerAnimationEvent::Stop);
+                animation_controller.transition(player_mesh_id, PlayerAnimationEvent::Stop);
             } else {
-                player_animation_enum =
-                    player_animation_enum.transition(player_mesh_id, PlayerAnimationEvent::Walk);
+                animation_controller.transition(player_mesh_id, PlayerAnimationEvent::Walk);
             }
-            entity::set_component(
-                player_mesh_id,
-                player_animation_state(),
-                player_animation_enum as u32,
-            );
 
             if input_direction.x == 1.0 {
                 player_direction += player_forward;
