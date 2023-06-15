@@ -15,10 +15,10 @@ use ambient_api::{
     prelude::*,
 };
 
-use components::{
-    player_animation_controller_ref, player_input_direction, player_mesh_ref, player_mouse_delta_x,
-    player_mouse_delta_y, player_movement_state, player_text_container_ref,
-    player_vertical_rotation_angle, view_vertical_rotation,
+use crate::components::{
+    is_dashing, player_input_direction, player_mesh_ref, player_mouse_delta_x,
+    player_mouse_delta_y, player_text_container_ref, player_vertical_rotation_angle,
+    view_vertical_rotation,
 };
 
 mod player_animation_controller;
@@ -64,11 +64,9 @@ pub fn main() {
                     rotation(),
                     Quat::from_rotation_z(-std::f32::consts::FRAC_PI_2),
                 ) // rotate blender mesh to fit world coordinates
-                .with(
-                    player_animation_controller_ref(),
-                    PlayerAnimationController::new().0,
-                )
                 .spawn();
+
+            PlayerAnimationController::new(player_mesh_id);
 
             let text = make_text()
                 .with(color(), vec4(1.0, 1.0, 1.0, 1.0))
@@ -101,6 +99,7 @@ pub fn main() {
                     .with(character_controller_height(), 2.)
                     .with(character_controller_radius(), 0.5)
                     .with_default(player_input_direction())
+                    .with_default(is_dashing())
                     .with_default(player_mouse_delta_x())
                     .with_default(player_mouse_delta_y()),
             );
@@ -110,7 +109,7 @@ pub fn main() {
     // capture input messages from client and update state
     messages::Input::subscribe(move |source, msg| {
         let Some(player_id) = source.client_entity_id() else { return; };
-        entity::set_component(player_id, player_movement_state(), msg.is_dashing);
+        entity::set_component(player_id, is_dashing(), msg.is_dashing);
         entity::set_component(player_id, player_input_direction(), msg.input_direction);
         entity::set_component(player_id, player_mouse_delta_x(), msg.mouse_delta_x);
         entity::set_component(player_id, player_mouse_delta_y(), msg.mouse_delta_y);
@@ -121,7 +120,7 @@ pub fn main() {
         player_input_direction(),
         player_mouse_delta_x(),
         player_mouse_delta_y(),
-        player_movement_state(),
+        is_dashing(),
     ))
     .each_frame(move |players| {
         for (player_id, (_, input_direction, mouse_delta_x, mouse_delta_y, is_dashing)) in players {
@@ -163,22 +162,18 @@ pub fn main() {
             let player_rotation = entity::get_component(player_id, rotation()).unwrap();
             let player_forward = player_rotation * world_front;
             let player_right = player_rotation * world_right;
-            let speed = 0.1;
+            let mut speed = 0.1;
             let mut player_direction: Vec3 = Vec3::ZERO;
             let player_mesh_id = entity::get_component(player_id, player_mesh_ref()).unwrap();
-            let animation_controller_id =
-                entity::get_component(player_mesh_id, player_animation_controller_ref()).unwrap();
-
-            let mut animation_controller = PlayerAnimationController(animation_controller_id);
+            let mut animation_controller = PlayerAnimationController(player_mesh_id);
 
             if input_direction.x == 0.0 && input_direction.y == 0.0 {
-                animation_controller.transition(player_mesh_id, PlayerAnimationEvent::Stop);
+                animation_controller.transition(PlayerAnimationEvent::Stop);
+            } else if is_dashing {
+                speed = 0.8;
+                animation_controller.transition(PlayerAnimationEvent::Dash);
             } else {
-                if is_dashing {
-                    animation_controller.transition(player_mesh_id, PlayerAnimationEvent::Dash);
-                } else {
-                    animation_controller.transition(player_mesh_id, PlayerAnimationEvent::Walk);
-                }
+                animation_controller.transition(PlayerAnimationEvent::Walk);
             }
 
             if input_direction.x == 1.0 {

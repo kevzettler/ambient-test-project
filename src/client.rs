@@ -88,7 +88,7 @@ fn main() {
             }
         }
 
-        if input.keys.len() == 0 {
+        if input.keys.is_empty() {
             is_dashing = false;
         }
 
@@ -110,8 +110,6 @@ fn main() {
         if input.keys.contains(&KeyCode::D) {
             input_direction.y += 1.0;
         }
-
-        println!("input direction??? {:?}", input_direction);
 
         messages::Input::new(
             input_direction,
