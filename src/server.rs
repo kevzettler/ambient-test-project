@@ -16,9 +16,9 @@ use ambient_api::{
 };
 
 use crate::components::{
-    is_dashing, player_input_direction, player_mesh_ref, player_mouse_delta_x,
-    player_mouse_delta_y, player_text_container_ref, player_vertical_rotation_angle,
-    view_vertical_rotation,
+    is_dashing, is_jumping, is_punching, player_input_direction, player_mesh_ref,
+    player_mouse_delta_x, player_mouse_delta_y, player_text_container_ref,
+    player_vertical_rotation_angle, view_vertical_rotation,
 };
 
 mod player_animation_controller;
@@ -47,8 +47,8 @@ pub fn main() {
     Entity::new()
         .with_merge(make_transformable())
         .with_default(quad())
-        .with(scale(), Vec3::ONE * 20.)
-        .with(color(), vec4(0.5, 1.0, 0.5, 1.0))
+        .with(scale(), Vec3::ONE * 200.)
+        .with(color(), vec4(1.5, 1.0, 1.5, 1.0))
         .with_default(plane_collider())
         .spawn();
 
@@ -100,6 +100,8 @@ pub fn main() {
                     .with(character_controller_radius(), 0.5)
                     .with_default(player_input_direction())
                     .with_default(is_dashing())
+                    .with_default(is_jumping())
+                    .with_default(is_punching())
                     .with_default(player_mouse_delta_x())
                     .with_default(player_mouse_delta_y()),
             );
@@ -110,6 +112,8 @@ pub fn main() {
     messages::Input::subscribe(move |source, msg| {
         let Some(player_id) = source.client_entity_id() else { return; };
         entity::set_component(player_id, is_dashing(), msg.is_dashing);
+        entity::set_component(player_id, is_jumping(), msg.is_jumping);
+        entity::set_component(player_id, is_punching(), msg.is_punching);
         entity::set_component(player_id, player_input_direction(), msg.input_direction);
         entity::set_component(player_id, player_mouse_delta_x(), msg.mouse_delta_x);
         entity::set_component(player_id, player_mouse_delta_y(), msg.mouse_delta_y);
@@ -121,9 +125,15 @@ pub fn main() {
         player_mouse_delta_x(),
         player_mouse_delta_y(),
         is_dashing(),
+        is_punching(),
+        is_jumping(),
     ))
     .each_frame(move |players| {
-        for (player_id, (_, input_direction, mouse_delta_x, mouse_delta_y, is_dashing)) in players {
+        for (
+            player_id,
+            (_, input_direction, mouse_delta_x, mouse_delta_y, is_dashing, is_punching, is_jumping),
+        ) in players
+        {
             // apply input messages and update player rotation and position
 
             //update player rotation
@@ -167,26 +177,32 @@ pub fn main() {
             let player_mesh_id = entity::get_component(player_id, player_mesh_ref()).unwrap();
             let mut animation_controller = PlayerAnimationController(player_mesh_id);
 
-            if input_direction.x == 0.0 && input_direction.y == 0.0 {
-                animation_controller.transition(PlayerAnimationEvent::Stop);
-            } else if is_dashing {
-                speed = 0.8;
-                animation_controller.transition(PlayerAnimationEvent::Dash);
+            if is_jumping {
+                animation_controller.transition(PlayerAnimationEvent::Jump);
+            } else if is_punching {
+                animation_controller.transition(PlayerAnimationEvent::Punch);
             } else {
-                animation_controller.transition(PlayerAnimationEvent::Walk);
-            }
+                if input_direction.x == 0.0 && input_direction.y == 0.0 {
+                    animation_controller.transition(PlayerAnimationEvent::Stop);
+                } else if is_dashing {
+                    speed = 0.8;
+                    animation_controller.transition(PlayerAnimationEvent::Dash);
+                } else {
+                    animation_controller.transition(PlayerAnimationEvent::Walk);
+                }
 
-            if input_direction.x == 1.0 {
-                player_direction += player_forward;
-            }
-            if input_direction.x == -1.0 {
-                player_direction += -player_forward;
-            }
-            if input_direction.y == -1.0 {
-                player_direction += -player_right;
-            }
-            if input_direction.y == 1.0 {
-                player_direction += player_right;
+                if input_direction.x == 1.0 {
+                    player_direction += player_forward;
+                }
+                if input_direction.x == -1.0 {
+                    player_direction += -player_forward;
+                }
+                if input_direction.y == -1.0 {
+                    player_direction += -player_right;
+                }
+                if input_direction.y == 1.0 {
+                    player_direction += player_right;
+                }
             }
 
             // update player translation

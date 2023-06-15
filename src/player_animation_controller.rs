@@ -13,6 +13,8 @@ pub enum PlayerAnimationState {
     Idle,
     Walking,
     Dashing,
+    Punching,
+    Jumping,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -20,6 +22,8 @@ pub enum PlayerAnimationEvent {
     Stop,
     Walk,
     Dash,
+    Punch,
+    Jump,
 }
 
 fn lookup_clip_path(animation_state: PlayerAnimationState) -> &'static str {
@@ -27,6 +31,8 @@ fn lookup_clip_path(animation_state: PlayerAnimationState) -> &'static str {
         PlayerAnimationState::Idle => "assets/mecha.glb/animations/idle_1.anim",
         PlayerAnimationState::Walking => "assets/mecha.glb/animations/walk_4.anim",
         PlayerAnimationState::Dashing => "assets/mecha.glb/animations/dash_0.anim",
+        PlayerAnimationState::Punching => "assets/mecha.glb/animations/punch_3.anim",
+        PlayerAnimationState::Jumping => "assets/mecha.glb/animations/dash_0.anim",
     };
 }
 
@@ -60,8 +66,11 @@ impl PlayerAnimationController {
             }
         };
 
+        let mut clip_looping = false;
         let next_state = match (current_state, event) {
+            // Idle
             (PlayerAnimationState::Idle, PlayerAnimationEvent::Walk) => {
+                clip_looping = true;
                 PlayerAnimationState::Walking
             }
             (PlayerAnimationState::Idle, PlayerAnimationEvent::Stop) => PlayerAnimationState::Idle,
@@ -70,7 +79,17 @@ impl PlayerAnimationController {
                 PlayerAnimationState::Dashing
             }
 
+            (PlayerAnimationState::Idle, PlayerAnimationEvent::Punch) => {
+                PlayerAnimationState::Punching
+            }
+
+            (PlayerAnimationState::Idle, PlayerAnimationEvent::Jump) => {
+                PlayerAnimationState::Jumping
+            }
+
+            // Walking
             (PlayerAnimationState::Walking, PlayerAnimationEvent::Walk) => {
+                clip_looping = true;
                 PlayerAnimationState::Walking
             }
             (PlayerAnimationState::Walking, PlayerAnimationEvent::Stop) => {
@@ -79,7 +98,15 @@ impl PlayerAnimationController {
             (PlayerAnimationState::Walking, PlayerAnimationEvent::Dash) => {
                 PlayerAnimationState::Dashing
             }
+            (PlayerAnimationState::Walking, PlayerAnimationEvent::Punch) => {
+                PlayerAnimationState::Punching
+            }
 
+            (PlayerAnimationState::Walking, PlayerAnimationEvent::Jump) => {
+                PlayerAnimationState::Jumping
+            }
+
+            //Dashing
             (PlayerAnimationState::Dashing, PlayerAnimationEvent::Dash) => {
                 PlayerAnimationState::Dashing
             }
@@ -88,7 +115,58 @@ impl PlayerAnimationController {
             }
 
             (PlayerAnimationState::Dashing, PlayerAnimationEvent::Walk) => {
+                clip_looping = true;
                 PlayerAnimationState::Walking
+            }
+
+            (PlayerAnimationState::Dashing, PlayerAnimationEvent::Punch) => {
+                PlayerAnimationState::Punching
+            }
+
+            (PlayerAnimationState::Dashing, PlayerAnimationEvent::Jump) => {
+                PlayerAnimationState::Jumping
+            }
+
+            //Punching
+            (PlayerAnimationState::Punching, PlayerAnimationEvent::Stop) => {
+                PlayerAnimationState::Idle
+            }
+
+            (PlayerAnimationState::Punching, PlayerAnimationEvent::Walk) => {
+                PlayerAnimationState::Walking
+            }
+
+            (PlayerAnimationState::Punching, PlayerAnimationEvent::Dash) => {
+                PlayerAnimationState::Dashing
+            }
+
+            (PlayerAnimationState::Punching, PlayerAnimationEvent::Punch) => {
+                PlayerAnimationState::Punching
+            }
+
+            (PlayerAnimationState::Punching, PlayerAnimationEvent::Jump) => {
+                PlayerAnimationState::Jumping
+            }
+
+            //Jumping
+            (PlayerAnimationState::Jumping, PlayerAnimationEvent::Stop) => {
+                PlayerAnimationState::Jumping
+            }
+
+            (PlayerAnimationState::Jumping, PlayerAnimationEvent::Walk) => {
+                clip_looping = true;
+                PlayerAnimationState::Walking
+            }
+
+            (PlayerAnimationState::Jumping, PlayerAnimationEvent::Dash) => {
+                PlayerAnimationState::Dashing
+            }
+
+            (PlayerAnimationState::Jumping, PlayerAnimationEvent::Punch) => {
+                PlayerAnimationState::Jumping
+            }
+            (PlayerAnimationState::Jumping, PlayerAnimationEvent::Jump) => {
+                PlayerAnimationState::Jumping
             }
         };
 
@@ -104,6 +182,7 @@ impl PlayerAnimationController {
 
         let clip_path = lookup_clip_path(next_state);
         let clip = PlayClipFromUrlNode::new(asset::url(clip_path).unwrap());
+        clip.looping(clip_looping);
 
         let anim_player_id =
             entity::get_component(target_entity_id, apply_animation_player()).unwrap();

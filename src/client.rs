@@ -72,6 +72,8 @@ fn main() {
 
     let mut dash_timer = 0;
     let mut is_dashing = false;
+    let mut is_jumping = false;
+    let mut is_punching = false;
     let mut cursor_lock = input::CursorLockGuard::new(true);
     ambient_api::messages::Frame::subscribe(move |_| {
         let (delta, input) = input::get_delta();
@@ -90,6 +92,16 @@ fn main() {
 
         if input.keys.is_empty() {
             is_dashing = false;
+        }
+
+        if delta.mouse_buttons.contains(&MouseButton::Left) {
+            is_punching = true;
+            println!("Punch!!! {:?}", is_punching);
+        }
+
+        if delta.keys.contains(&KeyCode::Space) {
+            is_jumping = true;
+            println!("JUMP!!! {:?}", is_jumping);
         }
 
         if !cursor_lock.auto_unlock_on_escape(&input) {
@@ -114,6 +126,8 @@ fn main() {
         messages::Input::new(
             input_direction,
             is_dashing,
+            is_jumping,
+            is_punching,
             delta.mouse_position.x,
             delta.mouse_position.y,
         )

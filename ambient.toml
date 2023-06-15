@@ -22,6 +22,8 @@ player_text_container_ref = { type = "EntityId", name = "Player Text Container R
 player_animation_controller_ref = { type = "EntityId", name = "Players animation controller", description = "Players animation controller feference id" }
 player_animation_state = { type = "U32", name = "Players current animation id", description = "Players current animation id" }
 is_dashing = { type = "Bool", name = "Players movment state, jumping, dashing etc", description = "Players currrent movment state"}
+is_jumping = { type = "Bool", name = "Players movment state, jumping, dashing etc", description = "Players currrent movment state"}
+is_punching = { type = "Bool", name = "Players movment state, jumping, dashing etc", description = "Players currrent movment state"}
 
 [messages]
 [messages.input]
@@ -30,5 +32,7 @@ description = "Describes the input state of the player."
 [messages.input.fields]
 input_direction = { type = "Vec2", name = "Direction", description = "The movement direction of the player." }
 is_dashing = { type = "Bool", name = "player has enabled dashing", description = "The movement state of the player"}
+is_jumping = { type = "Bool", name = "player has jumping", description = "The movement state of the player"}
+is_punching = { type = "Bool", name = "player has punched", description = "The movement state of the player"}
 mouse_delta_x = { type = "F32", name = "Mouse delta X", description = "The mouse delta X." }
 mouse_delta_y = { type = "F32", name = "Mouse delta Y", description = "The mouse delta Y." }
