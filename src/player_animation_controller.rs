@@ -28,10 +28,10 @@ pub enum PlayerAnimationEvent {
 
 fn lookup_clip_path(animation_state: PlayerAnimationState) -> &'static str {
     return match animation_state {
-        PlayerAnimationState::Idle => "assets/mecha.glb/animations/idle_1.anim",
-        PlayerAnimationState::Walking => "assets/mecha.glb/animations/walk_4.anim",
+        PlayerAnimationState::Idle => "assets/mecha.glb/animations/idle_2.anim",
+        PlayerAnimationState::Walking => "assets/mecha.glb/animations/walk_5.anim",
         PlayerAnimationState::Dashing => "assets/mecha.glb/animations/dash_0.anim",
-        PlayerAnimationState::Punching => "assets/mecha.glb/animations/punch_3.anim",
+        PlayerAnimationState::Punching => "assets/mecha.glb/animations/punch_4.anim",
         PlayerAnimationState::Jumping => "assets/mecha.glb/animations/dash_0.anim",
     };
 }
