@@ -1,17 +1,19 @@
 use core::f32::consts::FRAC_PI_2;
 
 use ambient_api::{
-    client::{material, sampler, texture},
     components::core::{
+        app::main_scene,
         ecs::{children, parent},
         physics::{character_controller_height, character_controller_radius, plane_collider},
-        player::player,
+        player::{player, user_id},
         prefab::prefab_from_url,
         primitives::{cube, quad},
-        procedurals::procedural_material,
         rendering::color,
         text::{font_size, text},
-        transform::{local_to_parent, rotation, scale, spherical_billboard, translation},
+        transform::{
+            local_to_parent, local_to_world, mesh_to_local, mesh_to_world, rotation, scale,
+            spherical_billboard, translation,
+        },
     },
     concepts::make_transformable,
     prelude::*,
@@ -40,27 +42,6 @@ fn make_text() -> Entity {
         .with_default(mesh_to_world())
 }
 
-fn default_normal(_: f32, _: f32) -> [u8; 4] {
-    [128, 128, 255, 0]
-}
-
-fn default_metallic_roughness(_: f32, _: f32) -> [u8; 4] {
-    [255, 255, 0, 0]
-}
-
-fn default_nearest_sampler() -> ProceduralSamplerHandle {
-    sampler::create(&sampler::Descriptor {
-        address_mode_u: sampler::AddressMode::ClampToEdge,
-        address_mode_v: sampler::AddressMode::ClampToEdge,
-        address_mode_w: sampler::AddressMode::ClampToEdge,
-        mag_filter: sampler::FilterMode::Nearest,
-        min_filter: sampler::FilterMode::Nearest,
-        mipmap_filter: sampler::FilterMode::Nearest,
-    })
-}
-
-const SKIN: &[u8] = include_bytes!("../build/assets/mecha.glb/images/0.png");
-
 #[main]
 pub fn main() {
     let world_front: Vec3 = Vec3::X;
@@ -77,42 +58,10 @@ pub fn main() {
 
     spawn_query(player()).bind(move |players| {
         for (id, _) in players {
-            let base_color_map = texture::create_2d(&texture::Descriptor2D {
-                width: 1000,
-                height: 1000,
-                format: texture::Format::Rgba8Unorm,
-                data: SKIN,
-            });
-
-            let empty = texture::create_2d(&texture::Descriptor2D {
-                width: 1000,
-                height: 1000,
-                format: texture::Format::Rgba8Unorm,
-                data: &[],
-            });
-
-            let default_sampler = sampler::create(&sampler::Descriptor {
-                address_mode_u: sampler::AddressMode::ClampToEdge,
-                address_mode_v: sampler::AddressMode::ClampToEdge,
-                address_mode_w: sampler::AddressMode::ClampToEdge,
-                mag_filter: sampler::FilterMode::Nearest,
-                min_filter: sampler::FilterMode::Nearest,
-                mipmap_filter: sampler::FilterMode::Nearest,
-            });
-
-            let material = material::create(&material::Descriptor {
-                base_color_map,
-                normal_map: empty,
-                metallic_roughness_map: empty,
-                sampler: default_sampler,
-                transparent: true,
-            });
-
             // add mecha to player id
             let player_mesh_id = Entity::new()
                 .with_merge(make_transformable())
                 .with(prefab_from_url(), asset::url("assets/mecha.glb").unwrap())
-                .with(procedural_material(), material)
                 .with_default(local_to_parent())
                 .with(parent(), id)
                 .with(
